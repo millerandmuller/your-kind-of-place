@@ -688,14 +688,14 @@ const MESSAGE: Record<Lang, {
   },
   de: {
     dear: (n) => `Guten Tag ${n},`,
-    welcome: (h, c, w, x) => `willkommen im ${h}. Für Ihren Aufenthalt in ${c}${w ? ` ab dem ${w}` : ""} haben wir einige ${x} ausgewählt, die Ihnen gefallen dürften:`,
+    welcome: (h, c, w, x) => `willkommen ${h === "unserem Hotel" ? "in unserem Hotel" : `im ${h}`}. Für Ihren Aufenthalt in ${c}${w ? ` ab dem ${w}` : ""} haben wir einige ${x} ausgewählt, die Ihnen gefallen dürften:`,
     what: { dining: "Restaurants und Bars", nightlife: "Orte für Livemusik und einen Abend in der Stadt", museums: "Museen und Galerien" },
     guest: "lieber Gast",
     ourHotel: "unserem Hotel",
     ask: "Sagen Sie uns gern Bescheid, wenn wir etwas für Sie reservieren oder organisieren dürfen.",
     regards: "Mit freundlichen Grüßen",
     team: "Ihr Concierge-Team",
-    subject: (c, h) => `Ihre Empfehlungen für ${c} vom ${h}`,
+    subject: (c, h) => `Ihre Empfehlungen für ${c} von ${h}`,
   },
   fr: {
     dear: (n) => `Bonjour ${n},`,
