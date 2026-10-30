@@ -169,6 +169,25 @@ export default function How() {
             </td>
           </tr>
           <tr>
+            <th>Daytime: museums &amp; galleries</th>
+            <td>
+              <strong>10 of 12</strong> — offered. Right on the line and with low judge confidence (2.4 of 5): two opposite
+              guests share most museums (overlap 0.78), so expect few changes.
+            </td>
+          </tr>
+          <tr>
+            <th>Daytime: parks &amp; gardens</th>
+            <td>8 of 12 — not offered: two opposite guests got largely the same parks.</td>
+          </tr>
+          <tr>
+            <th>Daytime: cafés</th>
+            <td>5 of 12 — not offered: too few cafés in 3 cases, and the rest hard to tell apart.</td>
+          </tr>
+          <tr>
+            <th>Daytime: spa &amp; wellness</th>
+            <td>4 of 12 — not offered: under the spa tag Qloo mostly returns hotels, so 8 of 12 lists were too short.</td>
+          </tr>
+          <tr>
             <th>Shops</th>
             <td>9 of 12 — not offered: two opposite guests got largely the same shops.</td>
           </tr>

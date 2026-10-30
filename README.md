@@ -26,7 +26,7 @@ Links that open straight on a view (state lives in the URL):
 - Both guests side by side: https://your-kind-of-place.vercel.app/?tab=both&ex=0&lines=5
 - Live music & nightlife for an Amy Winehouse fan: https://your-kind-of-place.vercel.app/?tab=own&city=London&kind=nightlife&fav=Amy%20Winehouse&id=10AE6E44-D058-4C1D-818F-FF4B37D069CB
 
-Kinds of place: **Restaurants & bars** (the default and the demo) and **Live music & nightlife** (`filter.tags` live_music_venue + night_club; venues, clubs, bars and pubs only). Each was offered only after passing the blind test below; shops (9 of 12) and sights & attractions (3 of 12) did not pass and are not offered. Adult venues are dropped in every category (Qloo genre, tag or description).
+Kinds of place: **Restaurants & bars** (the default and the demo), **Live music & nightlife** (`filter.tags` live_music_venue + night_club; venues, clubs, bars and pubs only) and **Daytime: museums & galleries** (`filter.tags` museum + art_museum + art_gallery). Each was offered only after passing the blind test below; shops (9 of 12), sights & attractions (3 of 12), parks (8), cafés (5) and spa (4) did not pass and are not offered. Adult venues are dropped in every category (Qloo genre, tag or description).
 
 ### Dining filter
 
@@ -40,7 +40,7 @@ Measured once before building (25 October 2026; San Francisco, Austin and London
 - **Stability:** the same queries 14 minutes later overlapped **0.99**.
 - **Default vs. taste:** a guest's list and the no-signal list overlapped **0.12**.
 
-**Categories, same blind test, threshold 10 of 12 set before the run:** live music & nightlife **10 of 12** (offered), shops 9 of 12, sights & attractions 3 of 12 (not offered). Restaurants & bars with the level rule (price level 3+, no pubs): **10 of 12** (passed; 11 of 12 without the rule).
+**Categories, same blind test, threshold 10 of 12 set before the run:** live music & nightlife **10 of 12** (offered), shops 9 of 12, sights & attractions 3 of 12 (not offered). Restaurants & bars with the level rule (price level 3+, no pubs): **10 of 12** (passed; 11 of 12 without the rule). Daytime: museums & galleries **10 of 12** (offered; low judge confidence, two opposite guests share most museums), parks & gardens 8 of 12, cafés 5 of 12, spa & wellness 4 of 12 (not offered).
 
 **Limits:** Fits this guest, not 'better'. Even similar tastes get different lists, so we don't claim anything about similar guests. The judge was a language model, and 12 cases is a small sample.
 

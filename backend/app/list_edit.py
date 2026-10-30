@@ -177,7 +177,18 @@ def is_nightlife(place: dict[str, Any], allow_chains: bool = False) -> bool:
     return not _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}")
 
 
-KEEP = {"dining": is_dining, "nightlife": is_nightlife}
+def is_museum(place: dict[str, Any], allow_chains: bool = False) -> bool:
+    """Daytime: museums and galleries by Qloo's primary genre (the blind-tested filter)."""
+    leaf = genre_of(place).split(":")[-1]
+    if not leaf or is_adult(place) or not ("museum" in leaf or leaf in {"art_gallery", "art_center", "gallery"}):
+        return False
+    if not allow_chains and is_chain(place):
+        return False
+    props = place.get("properties") or {}
+    return not _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}")
+
+
+KEEP = {"dining": is_dining, "nightlife": is_nightlife, "museums": is_museum}
 
 
 def dining(places: list[dict[str, Any]], category: str = "dining") -> list[dict[str, Any]]:

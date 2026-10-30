@@ -415,3 +415,9 @@ def test_not_considered_items_must_be_written_in_the_note():
     note = "Loves Amy Winehouse. Nut allergy, celebrating their anniversary; wants a quiet room."
     assert written_in("nut allergy", note) and written_in("Quiet room", note)
     assert not written_in("vegetarian", note)
+
+
+def test_daytime_keeps_museums_and_galleries_only():
+    places = [place("m", "museum"), place("a", "art_gallery"), place("n", "natural_history_museum"),
+              place("p", "park"), place("h", "hotel"), place("c", "restaurant:cafe")]
+    assert [p["entity_id"] for p in rl.dining(places, "museums")] == ["m", "a", "n"]

@@ -598,7 +598,12 @@ function guestMessage(
   channel: Channel,
 ): string {
   const bold = (t: string) => (channel === "whatsapp" ? `*${t}*` : t);
-  const what = r.category === "nightlife" ? "places for live music and a night out" : "restaurants and bars";
+  const what =
+    r.category === "nightlife"
+      ? "places for live music and a night out"
+      : r.category === "museums"
+        ? "museums and galleries"
+        : "restaurants and bars";
   const rows = finalList(r, rejected).map((p, i) => {
     const about = [p.neighborhood, ...(p.tags ?? []).slice(0, 2)].filter(Boolean).join(", ");
     const link = p.in_qloo === false || p.in_house ? "" : `\n   ${mapsUrl(p, r.city)}`;
@@ -858,7 +863,7 @@ function OwnGuest({
             </button>
           ))}
         </span>
-        {category === "nightlife" && (
+        {category !== "dining" && (
           <small className="label" style={{ margin: 0 }}>
             The agent below always edits restaurants &amp; bars.
           </small>

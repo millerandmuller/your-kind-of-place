@@ -25,10 +25,12 @@ INTEREST_TYPES = (
     "urn:entity:videogame",
 )
 DINING_TAG = "urn:tag:genre:place:restaurant"
-# Categories that passed the blind test (11/12 dining, 10/12 nightlife); others are not offered.
+# Categories that passed the blind test (11/12 dining, 10/12 nightlife, 10/12 museums & galleries);
+# cafés, spa, parks and shops did not and are not offered.
 CATEGORY_TAGS = {
     "dining": DINING_TAG,
     "nightlife": "urn:tag:genre:place:live_music_venue,urn:tag:genre:place:night_club",
+    "museums": "urn:tag:genre:place:museum,urn:tag:genre:place:art_museum,urn:tag:genre:place:art_gallery",
 }
 
 

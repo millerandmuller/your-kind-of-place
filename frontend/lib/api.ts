@@ -193,13 +193,15 @@ export const api = {
     }),
 };
 
-export type Category = "dining" | "nightlife";
+export type Category = "dining" | "nightlife" | "museums";
 // Only categories that passed the blind test are offered (see /how).
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "dining", label: "Restaurants & bars" },
   { id: "nightlife", label: "Live music & nightlife" },
+  { id: "museums", label: "Daytime: museums & galleries" },
 ];
-export const categoryLabel = (c?: Category) => (c === "nightlife" ? "Live music & nightlife" : "Restaurants & bars");
+export const categoryLabel = (c?: Category) =>
+  c === "nightlife" ? "Live music & nightlife" : c === "museums" ? "Museums & galleries" : "Restaurants & bars";
 
 export const CITIES = ["London", "San Francisco", "New York", "Austin"];
 export const BUDGETS = [3, 5, 10];
