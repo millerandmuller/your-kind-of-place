@@ -6,7 +6,7 @@ A boutique hotel hands every guest the same list of restaurants and bars. Redlin
 
 Built for the concierge and guest-experience team, who keep the last word: every change can be accepted or rejected, then sent to the guest as a printable list.
 
-**Live demo:** _URL added at submission_ · **How it works (in the app):** `/how`
+**Live demo:** https://redline-hotel.vercel.app · **How it works (in the app):** `/how`
 
 ## What it does
 
