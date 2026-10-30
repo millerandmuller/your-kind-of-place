@@ -224,7 +224,8 @@ export default function ListEditor() {
         </div>
       )}
 
-      {tab === "own" && (
+      {(
+        <div hidden={tab !== "own"}>
         <OwnGuest
           budget={budget}
           hotelOpen={hotelOpen}
@@ -238,6 +239,7 @@ export default function ListEditor() {
             setOpen(null);
           }}
         />
+        </div>
       )}
 
       {tab === "both" && g1 && g2 && (
@@ -698,7 +700,10 @@ function OwnGuest({
       <div className="fields">
         <span className="seg" role="group" aria-label="What to edit">
           {CATEGORIES.map((c) => (
-            <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
+            <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => {
+                if (c.id !== category) onStart();  // the old list was for the other kind of place
+                setCategory(c.id);
+              }}>
               {c.label}
             </button>
           ))}

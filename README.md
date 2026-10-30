@@ -14,7 +14,7 @@ Built for the concierge and guest-experience team, who keep the last word: every
 2. **Guest.** Up to three favourites (a band, show, film, brand or game), resolved with Qloo search. If a name is ambiguous, it asks. It never guesses.
 3. **Taste matches.** The same Insights query with the guest's favourites as the signal and `feature.explainability=true`.
 4. **The edit (deterministic).** Struck: list entries that are not in the guest's top 50, the ones with the lowest Qloo taste affinity for this guest first (Insights restricted to the list's own places with `filter.results.entities`), up to the swap budget (3, 5 or 10). Inserted: the guest's best matches that aren't on the list yet, one per struck entry. Kept: everything else. Nothing is padded.
-5. **Margin notes.** Inserts name the favourite that Qloo's explainability score says drove the place, plus Qloo's neighbourhood and place type. Strikes say "Not among this guest's top 50 taste matches".
+5. **Margin notes.** Inserts name the favourite that Qloo's explainability score says drove the place, plus Qloo's neighbourhood and place type. Strikes name the place's rank by this guest's Qloo affinity among the list's places ("Lowest taste affinity on this list for this guest", "2nd lowest …"); a place Qloo gave no score says "Not among this guest's top 50 taste matches". The hotel's own places ("Our rooftop bar") are labelled "Hotel's own · kept as is".
 6. **Agent.** A Google ADK agent (Claude via LiteLLM) takes free text such as "Guest checking in tonight: loves Amy Winehouse and Dr. Martens", picks the favourites, asks when unclear and runs the same tools: `resolve_interest`, `default_list`, `taste_places`, `edit_list`, `explain_place`. Its tool calls are shown in the UI.
 7. **Tomorrow's arrivals.** Paste up to six arrival notes ("Room 204: Ms Patel. Loves Amy Winehouse, always in Dr. Martens. Nut allergy."). A second ADK agent records up to three favourites per note via a `record_guest` tool; the server keeps only favourites literally written in the note and resolves them in Qloo. Favourites right after a negation in the same clause ("hates Coldplay") are dropped. The concierge confirms them (or skips the agent and types favourites per guest; `POST /api/resolve` needs no model), then gets a morning report with one full edited list per guest, on the hotel's own list if one was pasted (copy or print). `POST /api/arrivals/read`, `POST /api/arrivals/report`.
 8. **MCP.** The same capability as an MCP tool at `https://your-kind-of-place-api-588508999301.us-east1.run.app/mcp/`: `edit_hotel_list(city, interests[], budget, hotel_list[])`. A hotel's existing concierge or messaging agent can call it with the hotel's own list and the guest's favourites and get back the names of the struck places, the inserted places with their notes, the final list and the lines it couldn't match.
@@ -42,8 +42,8 @@ Measured once before building (25 October 2026; San Francisco, Austin and London
 ## Architecture
 
 ```
-Next.js (Vercel) ──/api rewrite──▶ FastAPI + ADK agent (Cloud Run) ──▶ Qloo hackathon.api.qloo.com
-                                        ├─ Claude via LiteLLM (agent only)
+Next.js (Vercel) ──server-side proxy──▶ FastAPI + 2 ADK agents (Cloud Run) ──▶ Qloo hackathon.api.qloo.com
+                                        ├─ Claude via LiteLLM (agents only: free-text guest, arrival notes)
                                         ├─ /mcp  edit_hotel_list(city, interests[], budget, hotel_list[])
                                         └─ private file cache (never in this repo)
 ```
