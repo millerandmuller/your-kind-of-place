@@ -41,6 +41,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* controls */
 .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 16px 0 12px; font-size: 0.9rem; }
 .controls label, .controls .ctl { color: var(--muted); display: inline-flex; gap: 8px; align-items: center; }
+.controls label { max-width: 100%; flex-wrap: wrap; }
+.controls select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 select, .seg button {
   font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--sheet); color: var(--ink);
 }

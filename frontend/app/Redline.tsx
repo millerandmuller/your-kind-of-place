@@ -37,6 +37,7 @@ export default function Redline() {
   const [tab, setTab] = useState<Tab>("default");
   const [results, setResults] = useState<Partial<Record<Tab, RedlineResult>>>({});
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [rejected, setRejected] = useState<Partial<Record<Tab, Set<string>>>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [animate, setAnimate] = useState(false);
@@ -49,26 +50,25 @@ export default function Redline() {
     api.demo().then((d) => setPairs(d.pairs)).catch((e) => setError(e.message));
   }, []);
 
-  // Load both demo guests whenever the example or the swap budget changes.
+  // Load both demo guests whenever the example or the swap budget changes (or on "Try again").
   useEffect(() => {
     if (!pair) return;
     let live = true;
-    const load = (g: typeof pair.guest1) =>
-      api.redline(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget);
-    Promise.all([load(pair.guest1), load(pair.guest2)])
-      .then(([a, b]) => {
-        if (!live) return;
-        setResults((r) => ({
-          ...r,
-          g1: a.status === "ok" ? a : undefined,
-          g2: b.status === "ok" ? b : undefined,
-        }));
-      })
-      .catch((e) => live && setError(e.message));
+    const load = (key: "g1" | "g2", g: typeof pair.guest1) =>
+      api
+        .redline(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget)
+        .then((res) => {
+          if (!live) return;
+          if (res.status === "ok") setResults((r) => ({ ...r, [key]: res }));
+          else setError("This example needs a pick first. Try another example.");
+        })
+        .catch((e) => live && setError(e.message));
+    load("g1", pair.guest1);
+    load("g2", pair.guest2);
     return () => {
       live = false;
     };
-  }, [pair, budget]);
+  }, [pair, budget, attempt]);
 
   // The first visit shows the hotel's list, then Guest 1 checks in by themselves.
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function Redline() {
       touched.current = true;
       setAnimate(true);
       setTab("g1");
-    }, 1400);
+    }, 2600);
     return () => clearTimeout(t);
   }, [results.g1]);
 
@@ -110,7 +110,8 @@ export default function Redline() {
 
   const g1 = results.g1;
   const g2 = results.g2;
-  const shareCount = g1 && g2 ? shared(g1.final, g2.final) : null;
+  const none = new Set<string>();
+  const shareCount = g1 && g2 ? shared(finalList(g1, rejected.g1 ?? none), finalList(g2, rejected.g2 ?? none)) : null;
 
   return (
     <main className="wrap">
@@ -177,7 +178,21 @@ export default function Redline() {
         <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest" />
       </div>
 
-      {error && <p className="err">{error}</p>}
+      {error && (
+        <p className="err">
+          {error}{" "}
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              setError(null);
+              setAttempt((a) => a + 1);
+            }}
+          >
+            Try again
+          </button>
+        </p>
+      )}
 
       {tab === "own" && (
         <OwnGuest
@@ -204,6 +219,7 @@ export default function Redline() {
             </div>
             <div>
               {current?.cached && <span className="badge" title="Answered from saved Qloo results">cached result</span>}{" "}
+              {current && tab === "own" && <span className="badge">swap budget {current.budget}</span>}{" "}
               {current && tab !== "default" && (
                 <span className="count">
                   <span className="red">{current.changed - [...rej].length}</span> of {current.length} changed
@@ -342,8 +358,8 @@ function Detail({ line, r }: { line: Line; r: RedlineResult }) {
     return (
       <div className="detail">
         <p>
-          Qloo ranked 50 places in {r.city} for a guest who loves {guestName(r.guest)}. {p.name} is not among them, so
-          it made room for a closer match.
+          Qloo ranked {r.match_count} places in {r.city} for a guest who loves {guestName(r.guest)}. {p.name} is not
+          among them, so it made room for a closer match.
         </p>
         <p className="src">It stays on the default list for other guests. Reject the change to keep it here.</p>
       </div>
@@ -427,6 +443,7 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
       setBusy("form");
       setErr(null);
       setIssues([]);
+      setAgent(null);
       try {
         const r = await api.redline(city, interests, budget);
         if (r.status === "ok") onResult(r);
@@ -449,8 +466,13 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
     try {
       const r = await api.agent(text, city, budget);
       setAgent({ said: r.agent_said, trace: r.trace });
-      if (r.status === "ok") onResult(r as RedlineResult);
-      else if (r.status === "needs_input") {
+      if (r.city && CITIES.includes(r.city)) setCity(r.city);
+      if (r.status === "ok") {
+        const ok = r as RedlineResult;
+        setNames([0, 1, 2].map((i) => ok.guest[i]?.name ?? ""));
+        setIds([0, 1, 2].map((i) => ok.guest[i]?.id));
+        onResult(ok);
+      } else if (r.status === "needs_input") {
         const ni = r as NeedsInput;
         // Hand the open question to the form: resolved names stay, the unclear one waits for a pick.
         const n = ["", "", ""];
@@ -529,7 +551,7 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
           onChange={(e) => setText(e.target.value)}
         />
         <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
-          {busy === "agent" ? "Agent is working… (about 10 s)" : "Ask the agent"}
+          {busy === "agent" ? "Agent is working… (10–20 s)" : "Ask the agent"}
         </button>
       </div>
       {issues.map((iss) =>

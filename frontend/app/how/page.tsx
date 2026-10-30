@@ -24,7 +24,8 @@ export default function How() {
       <p>
         That tag also returns hotels, department stores, arenas and fast-food chains. A concierge doesn&apos;t hand those out, so
         both lists keep only sit-down food and drink by Qloo&apos;s <code>primary_genre</code> (restaurants, bars, pubs, cafés;
-        no fast food, delivery or food courts). The top 10 that remain are the default list.
+        no fast food, burger, ice-cream or donut shops, delivery or food courts) and drop anything at an airport. The top 10
+        that remain are the default list. Chains with a sit-down genre (a Hard Rock Cafe, say) stay if Qloo ranks them.
       </p>
 
       <h2>2. The guest</h2>
@@ -68,7 +69,9 @@ export default function How() {
         “Ask the agent” runs a Google ADK agent (Claude via LiteLLM) with five tools: <code>resolve_interest</code>,{" "}
         <code>default_list</code>, <code>taste_places</code>, <code>redline</code>, <code>explain_place</code>. It reads the
         favourites out of free text, asks when a name is unclear and returns the same redline as the form. Its tool calls are shown
-        under the result. The same capability is an MCP tool at <code>/mcp/</code>: <code>redline(city, interests[], budget)</code>.
+        under the result; its sentence is checked on the server and replaced by a plain summary if it names a number the tools
+        didn&apos;t return or compares the list to anything. The same capability is an MCP tool at{" "}
+        <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget)</code>.
       </p>
 
       <h2>What we measured</h2>
@@ -108,8 +111,8 @@ export default function How() {
         similar guests.
       </p>
       <p>
-        Two fans of nearly the same music got lists that overlapped only 0.12 in our test. Qloo moves a lot with small differences
-        in taste, so Redline shows opposite guests side by side and says nothing about guests who are alike.
+        In the same test, two fans of nearly the same music also got very different lists. Qloo moves a lot with small
+        differences in taste, so Redline shows opposite guests side by side and says nothing about guests who are alike.
       </p>
       <p>
         Accept and reject are only kept on your screen. Demo guests may be answered from saved Qloo results and are marked

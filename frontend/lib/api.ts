@@ -40,6 +40,7 @@ export type Redline = {
   changed: number;
   length: number;
   possible: number;
+  match_count: number;
   cached: boolean;
   cache_age_seconds: number;
   agent_said?: string;
@@ -48,13 +49,14 @@ export type Redline = {
 
 export type NeedsInput = {
   status: "needs_input";
+  city?: string;
   issues: Issue[];
   resolved: Interest[];
   agent_said?: string;
   trace?: TraceStep[];
 };
 
-export type AgentError = { status: "error"; agent_said?: string; trace?: TraceStep[] };
+export type AgentError = { status: "error"; city?: string; agent_said?: string; trace?: TraceStep[] };
 
 export type DemoGuest = { id: string; name: string; kind: string };
 export type DemoPair = { city: string; guest1: DemoGuest[]; guest2: DemoGuest[] };
