@@ -1,0 +1,86 @@
+{
+  "note": "Names and Qloo entity ids of the demo guests only. No Qloo answers are stored in this repo.",
+  "pairs": [
+    {
+      "city": "London",
+      "guest1": [
+        {
+          "id": "10AE6E44-D058-4C1D-818F-FF4B37D069CB",
+          "name": "Amy Winehouse",
+          "kind": "artist"
+        },
+        {
+          "id": "F59D6DB5-5A85-48C6-A2EC-CAAE334D4348",
+          "name": "Dr. Martens",
+          "kind": "brand"
+        }
+      ],
+      "guest2": [
+        {
+          "id": "509EE21F-55DD-459D-A3F5-2128D69AB8A3",
+          "name": "Bridgerton",
+          "kind": "tv_show"
+        },
+        {
+          "id": "D9FD22A4-9B79-4098-9B10-7F4164ACADFA",
+          "name": "Jo Malone London",
+          "kind": "brand"
+        }
+      ]
+    },
+    {
+      "city": "London",
+      "guest1": [
+        {
+          "id": "7909D30F-2ABD-46A4-9335-E0B72F1A10FE",
+          "name": "Peaky Blinders",
+          "kind": "tv_show"
+        },
+        {
+          "id": "1743D088-EF91-414D-AA17-E64E8D0AE4CC",
+          "name": "Guinness",
+          "kind": "brand"
+        }
+      ],
+      "guest2": [
+        {
+          "id": "B4A3F0F0-354D-4CAD-9F96-11A20709CB9C",
+          "name": "Charli XCX",
+          "kind": "artist"
+        },
+        {
+          "id": "742FBE1B-B70F-471F-AD07-A55C9A903628",
+          "name": "Glossier",
+          "kind": "brand"
+        }
+      ]
+    },
+    {
+      "city": "San Francisco",
+      "guest1": [
+        {
+          "id": "F24E393D-FBBC-44E4-BE26-EA3CE11E04CB",
+          "name": "Grateful Dead",
+          "kind": "artist"
+        },
+        {
+          "id": "DB4CE34E-3A63-4947-946F-9D52502C5762",
+          "name": "Patagonia",
+          "kind": "brand"
+        }
+      ],
+      "guest2": [
+        {
+          "id": "4BBEF799-A0C4-4110-AB01-39216993C312",
+          "name": "Taylor Swift",
+          "kind": "artist"
+        },
+        {
+          "id": "4C60FF74-A236-4488-8FB3-2FE43D1C79FB",
+          "name": "Gilmore Girls",
+          "kind": "tv_show"
+        }
+      ]
+    }
+  ]
+}
