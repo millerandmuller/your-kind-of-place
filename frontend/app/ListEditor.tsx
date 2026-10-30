@@ -294,7 +294,15 @@ export default function ListEditor() {
               ))}
             </ol>
           ) : (
-            <EditedList r={current} rejected={rej} toggle={toggle} open={open} setOpen={setOpen} />
+            <>
+              {current.changed === 0 && (
+                <p className="ask">
+                  Nothing changed for this guest: no entry on this list is outside the guest&apos;s top 50 taste matches, or
+                  there is no new match to put in its place.
+                </p>
+              )}
+              <EditedList r={current} rejected={rej} toggle={toggle} open={open} setOpen={setOpen} />
+            </>
           )}
 
           {current && (

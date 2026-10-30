@@ -177,11 +177,7 @@ export default function How() {
         Fits this guest, not &apos;better&apos;. Even similar tastes get different lists, so we don&apos;t claim anything about
         similar guests.
       </p>
-      <p>
-        In the same test, two fans of nearly the same music also got very different lists. Qloo moves a lot with small
-        differences in taste, so the app shows opposite guests (one after the other, or side by side under “Compare”) and says nothing about
-        guests who are alike.
-      </p>
+      <p>The examples in the app are opposite guests, one after the other or side by side under “Compare”.</p>
       <p>
         Accept and reject are only kept on your screen. Demo guests may be answered from saved Qloo results and are marked
         “cached result”. {""}
