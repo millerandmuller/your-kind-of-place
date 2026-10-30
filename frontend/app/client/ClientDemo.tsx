@@ -243,11 +243,20 @@ function GuestView(props: {
       ) : !result ? (
         <p className="mt-msg" aria-live="polite">{t("Loading the list…")}</p>
       ) : (
-        <ol className="mt-list">
+        <>
+          {result.changed === 0 && (
+            <p className="mt-msg">
+              {t(
+                "Nothing changed for this guest: no entry on this list is outside the guest's top 50 taste matches, or there is no new match to put in its place.",
+              )}
+            </p>
+          )}
+          <ol className="mt-list">
           {result.lines.map((l) => (
-            <PlaceLine key={`${l.status}-${l.place.id}`} l={l} city={city} lang={lang} />
-          ))}
-        </ol>
+              <PlaceLine key={`${l.status}-${l.place.id}`} l={l} city={city} lang={lang} />
+            ))}
+          </ol>
+        </>
       )}
 
       <nav className="mt-tabs" aria-label={t("Lists")}>

@@ -213,7 +213,8 @@ export default function HowEN() {
         per city, restaurants &amp; bars at the house list&apos;s price level. The separate model matched{" "}
         <strong>12 of 12</strong>. The two sample guests per city are the test pair whose guests share the fewest additions
         (none), picked by a rule written down before the run. The same limits apply: opposite guests, a language model as
-        judge, 12 cases.
+        judge, 12 cases. The test covered restaurants &amp; bars; the “After dark” tab (live music &amp; nightlife) was
+        not tested in these two cities, and in Montreal it changes little (0 and 1 of 10 for the two sample guests).
       </p>
 
       <h2>What we don&apos;t claim</h2>

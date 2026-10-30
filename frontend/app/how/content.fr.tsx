@@ -213,7 +213,9 @@ export default function HowFR() {
         canadiens, 6 par ville, restaurants et bars au niveau de prix de la liste maison. Le modèle séparé a vu juste dans{" "}
         <strong>12 cas sur 12</strong>. Les deux clients d&apos;exemple par ville sont la paire du test dont les clients
         partagent le moins d&apos;ajouts (aucun), choisie selon une règle fixée avant le passage. Les mêmes limites
-        s&apos;appliquent : clients opposés, un modèle de langage comme juge, 12 cas.
+        s&apos;appliquent : clients opposés, un modèle de langage comme juge, 12 cas. Le test portait sur les restaurants et
+        bars ; l&apos;onglet « Le soir » (musique live et vie nocturne) n&apos;a pas été testé dans ces deux villes, et à Montréal il
+        change peu (0 et 1 sur 10 pour les deux clients d&apos;exemple).
       </p>
 
       <h2>Ce que nous n&apos;affirmons pas</h2>

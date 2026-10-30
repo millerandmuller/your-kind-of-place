@@ -213,7 +213,9 @@ export default function HowDE() {
         Lieblingen, 6 pro Stadt, Restaurants &amp; Bars auf dem Preisniveau der Hausliste. Das separate Modell ordnete{" "}
         <strong>12 von 12</strong> richtig zu. Die zwei Beispiel-Gäste je Stadt sind das Testpaar, dessen Gäste die wenigsten
         Ergänzungen teilen (keine), gewählt nach einer vor dem Lauf festgelegten Regel. Es gelten dieselben Grenzen:
-        gegensätzliche Gäste, ein Sprachmodell als Bewerter, 12 Fälle.
+        gegensätzliche Gäste, ein Sprachmodell als Bewerter, 12 Fälle. Getestet wurden Restaurants &amp; Bars; der Reiter
+        „Am Abend“ (Livemusik &amp; Nachtleben) wurde in diesen beiden Städten nicht getestet und ändert in Montreal wenig (0 und 1
+        von 10 bei den zwei Beispiel-Gästen).
       </p>
 
       <h2>Was wir nicht behaupten</h2>
