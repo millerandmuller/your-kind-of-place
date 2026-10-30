@@ -79,6 +79,10 @@ def _option(candidate: dict[str, Any]) -> dict[str, str]:
 
 # A same-named entry below this popularity is a stub (a fan video, an unknown film), not a rival.
 NOTABLE = 0.1
+# One exact match this popular, with every other exact match at least LEAD below it, is what people
+# mean ("Succession" the show, not the 2009 film). It is taken and its type is shown on the result.
+DOMINANT = 0.9
+LEAD = 0.15
 
 
 def pick(query: str, candidates: list[dict[str, Any]]) -> Entity | list[dict[str, Any]] | None:
@@ -95,6 +99,11 @@ def pick(query: str, candidates: list[dict[str, Any]]) -> Entity | list[dict[str
     notable = [c for c in exact if (c.get("popularity") or 0) >= NOTABLE]
     if len(notable) == 1:
         return _entity(notable[0])
+    ranked = sorted(notable, key=lambda c: c.get("popularity") or 0, reverse=True)
+    if len(ranked) > 1 and (ranked[0].get("popularity") or 0) >= DOMINANT and (
+        (ranked[0].get("popularity") or 0) - (ranked[1].get("popularity") or 0) >= LEAD
+    ):
+        return _entity(ranked[0])
     if len(exact) == 1:
         return _entity(exact[0])
     if len(exact) > 1:

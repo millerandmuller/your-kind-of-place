@@ -71,9 +71,13 @@ def test_pick_accepts_one_notable_exact_match_and_asks_otherwise():
            {"entity_id": "2", "name": "Amy Winehouse", "popularity": 0, "types": ["urn:entity:movie"]}]
     found = pick("Amy Winehouse", amy)
     assert isinstance(found, Entity) and found.kind == "artist"
-    two = [{"entity_id": "1", "name": "Heat", "popularity": 0.9, "types": ["urn:entity:movie"]},
-           {"entity_id": "2", "name": "Heat", "popularity": 0.8, "types": ["urn:entity:artist"]}]
-    assert isinstance(pick("Heat", two), list)
+    two = [{"entity_id": "1", "name": "The Office", "popularity": 0.999, "types": ["urn:entity:tv_show"]},
+           {"entity_id": "2", "name": "The Office", "popularity": 0.975, "types": ["urn:entity:tv_show"]}]
+    assert isinstance(pick("The Office", two), list)
+    clear = [{"entity_id": "1", "name": "Aesop", "popularity": 0.971, "types": ["urn:entity:brand"]},
+             {"entity_id": "2", "name": "Aesop", "popularity": 0.61, "types": ["urn:entity:artist"]}]
+    found = pick("Aesop", clear)
+    assert isinstance(found, Entity) and found.kind == "brand"
     near = [{"entity_id": "1", "name": "Jo Malone London", "popularity": 0.9, "types": ["urn:entity:brand"]}]
     assert isinstance(pick("Jo Malone", near), list)
 

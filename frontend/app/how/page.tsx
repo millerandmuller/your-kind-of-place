@@ -30,7 +30,9 @@ export default function How() {
       <h2>2. The guest</h2>
       <p>
         Up to three favourites (a band, show, film, brand or game), found with <code>GET /search</code>. If a name matches more
-        than one thing, Redline asks. It never guesses.
+        than one thing, Redline asks. The one exception: when a single exact match has Qloo popularity of at least 0.9 and
+        every other exact match is at least 0.15 lower (“Succession” the show, not the film), Redline takes it and shows its
+        type on the list, so you can see what it used.
       </p>
 
       <h2>3. The guest&apos;s taste matches</h2>

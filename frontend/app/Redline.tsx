@@ -197,7 +197,9 @@ export default function Redline() {
             <div>
               <h2>Restaurants &amp; bars{current ? ` in ${current.city}` : ""}</h2>
               <span className="for">
-                {tab === "default" || !current ? "For every guest" : `For a guest who loves ${guestName(current.guest)}`}
+                {tab === "default" || !current
+                  ? "For every guest"
+                  : `For a guest who loves ${current.guest.map((g) => (g.kind ? `${g.name} (${g.kind.replace("_", " ")})` : g.name)).join(" + ")}`}
               </span>
             </div>
             <div>
