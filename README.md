@@ -19,7 +19,11 @@ Built for the concierge and guest-experience team, who keep the last word: every
 7. **Tomorrow's arrivals.** Paste up to six arrival notes ("Room 204: Ms Patel. Loves Amy Winehouse, always in Dr. Martens. Nut allergy."). A second ADK agent records up to three favourites per note via a `record_guest` tool; the server keeps only favourites literally written in the note and resolves them in Qloo. Favourites right after a negation in the same clause ("hates Coldplay") are dropped. The concierge confirms them (or skips the agent and types favourites per guest; `POST /api/resolve` needs no model), then gets a morning report with one full edited list per guest, on the hotel's own list if one was pasted (copy or print). `POST /api/arrivals/read`, `POST /api/arrivals/report`.
 8. **MCP.** The same capability as an MCP tool at `https://your-kind-of-place-api-588508999301.us-east1.run.app/mcp/`: `edit_hotel_list(city, interests[], budget, hotel_list[])`. A hotel's existing concierge or messaging agent can call it with the hotel's own list and the guest's favourites and get back the names of the struck places, the inserted places with their notes, the final list and the lines it couldn't match.
 
-Cities: London, San Francisco, New York, Austin. (Berlin was dropped: its default list read like a sights list, not a hotel's.)
+Cities: London, San Francisco, New York, Austin.
+
+Languages: English (default), German, French (switch in the top bar; the guest message can have its own language). The interface, the margin notes' own words, the guest message and "How this works" are translated; place names and Qloo's tags stay as Qloo has them. The agent answers in the chosen language under the same server check (numbers must come from the tools; no comparison words, in German and French too).
+
+Look: day (cream) and night (warm dark), following the system setting and remembered once switched. (Berlin was dropped: its default list read like a sights list, not a hotel's.)
 
 Links that open straight on a view (state lives in the URL):
 - Guest 1, London: https://your-kind-of-place.vercel.app/?tab=g1&ex=0&lines=5

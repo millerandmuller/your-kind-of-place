@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { pickLang } from "@/lib/lang";
 import { Figtree, Fraunces, Geist, Newsreader } from "next/font/google";
 import "./globals.css";
 
@@ -25,10 +27,11 @@ export const metadata: Metadata = {
 // Before first paint: the remembered choice, else the system setting.
 const THEME = `try{var t=localStorage.getItem("theme");if(t!=="day"&&t!=="night")t=matchMedia("(prefers-color-scheme: dark)").matches?"night":"day";document.documentElement.dataset.theme=t}catch(e){}`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const lang = pickLang((await cookies()).get("lang")?.value);
   return (
     <html
-      lang="en"
+      lang={lang}
       suppressHydrationWarning
       className={`${geistSans.variable} ${serif.variable} ${fraunces.variable} ${figtree.variable}`}
     >

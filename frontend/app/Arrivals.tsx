@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useLang, useT } from "./LangContext";
+import type { Vars } from "@/lib/lang";
 import {
   api,
   CATEGORIES,
@@ -25,11 +27,17 @@ const SAMPLE = [
   "Room 415: Sophie, here for a concert. Charli XCX superfan, Glossier everything.",
 ].join("\n");
 
+function added(r: EditResult): Set<string> {
+  return new Set(r.lines.filter((l) => l.status === "insert").map((l) => l.place.id));
+}
+
 function extraNotes(text: string): number {
   return Math.max(0, text.split("\n").filter((l) => l.trim().length >= 3).length - 6);
 }
 
-function parse(text: string): { label: string; text: string }[] {
+type T = (en: string, vars?: Vars) => string;
+
+function parse(text: string, t: T): { label: string; text: string }[] {
   return text
     .split("\n")
     .map((l) => l.trim())
@@ -37,25 +45,28 @@ function parse(text: string): { label: string; text: string }[] {
     .slice(0, 6)
     .map((l, i) => {
       const cut = l.indexOf(":");
-      return cut > 0 && cut <= 30 ? { label: l.slice(0, cut).trim(), text: l.slice(cut + 1).trim() } : { label: `Guest ${i + 1}`, text: l };
+      return cut > 0 && cut <= 30 ? { label: l.slice(0, cut).trim(), text: l.slice(cut + 1).trim() } : { label: t("Guest {n}", { n: i + 1 }), text: l };
     });
 }
 
-function reportText(rep: MorningReport): string {
+function reportText(rep: MorningReport, t: T): string {
   const parts = rep.guests.map((g) => {
     const r = g.result;
-    const other = g.not_considered?.length ? `\n   Not considered: ${g.not_considered.join(", ")}` : "";
-    if (r.status !== "ok") return `${g.label}${other}\n   (no list: ${r.status === "skipped" ? "no favourites confirmed" : "needs a pick"})`;
+    const other = g.not_considered?.length ? `\n   ${t("Not considered: {list}", { list: g.not_considered.join(", ") })}` : "";
+    if (r.status !== "ok")
+      return `${g.label}${other}\n   ${r.status === "skipped" ? t("(no list: no favourites confirmed)") : t("(no list: needs a pick)")}`;
     const ok = r as EditResult;
     const rows = ok.lines.map((l) =>
       l.status === "strike" ? `   - ${l.place.name}` : l.status === "insert" ? `   + ${l.place.name}  (${l.note})` : `     ${l.place.name}`,
     );
-    return `${g.label} · loves ${guestName(ok.guest)} · ${ok.changed} of ${ok.length} changed${other}\n${rows.join("\n")}`;
+    return `${g.label} · ${t("loves {names}", { names: guestName(ok.guest) })} · ${t("{n} of {m} changed", { n: ok.changed, m: ok.length })}${other}\n${rows.join("\n")}`;
   });
-  return `Morning report: tomorrow's arrivals, ${rep.city}\n\n${parts.join("\n\n")}\n\n${LABEL}`;
+  return `${t("Morning report: tomorrow's arrivals, {city}", { city: rep.city })}\n\n${parts.join("\n\n")}\n\n${t(LABEL)}`;
 }
 
 export default function Arrivals({ budget, hotelLines }: { budget: number; hotelLines: string[] }) {
+  const lang = useLang();
+  const t = useT();
   const [city, setCity] = useState("London");
   const [category, setCategory] = useState<Category>("dining");
   const [text, setText] = useState("");
@@ -73,15 +84,15 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
 
   // Without the agent (it failed, or the concierge prefers to type): one card per note, no favourites yet.
   const byHand = (why: string | null) => {
-    const notes = parse(text);
+    const notes = parse(text, t);
     if (!notes.length) {
-      setErr("Paste at least one arrival note, one guest per line.");
+      setErr(t("Paste at least one arrival note, one guest per line."));
       return;
     }
     setRead({ status: "ok", guests: notes.map((n) => ({ ...n, favourites: [] })), trace: [] });
     setPicked({});
     setReport(null);
-    setManual(why ?? "Add each guest's favourites by hand below.");
+    setManual(why ?? t("Add each guest's favourites by hand below."));
   };
 
   const addFavourite = async (gi: number) => {
@@ -103,9 +114,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
   };
 
   const readNotes = async () => {
-    const notes = parse(text);
+    const notes = parse(text, t);
     if (!notes.length) {
-      setErr("Paste at least one arrival note, one guest per line.");
+      setErr(t("Paste at least one arrival note, one guest per line."));
       return;
     }
     if (inFlight.current) return;
@@ -126,7 +137,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
       setPicked(p);
       setRead(r);
     } catch (e) {
-      byHand(`The agent couldn't read the notes (${(e as Error).message}) Add each guest's favourites by hand below.`);
+      byHand(t("The agent couldn't read the notes ({error}) Add each guest's favourites by hand below.", { error: (e as Error).message }));
     } finally {
       inFlight.current = false;
       setBusy(null);
@@ -148,7 +159,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
           .filter((x): x is Interest => !!x)
           .map((x) => ({ name: x.name, id: x.id })),
       }));
-      setReport(await api.arrivalsReport(city, budget, guests, hotelLines, category));
+      setReport(await api.arrivalsReport(city, budget, guests, hotelLines, category, lang));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -162,35 +173,37 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
 
   return (
     <>
-      <section className="sheet own noprint" aria-label="Tomorrow's arrivals">
+      <section className="sheet own noprint" aria-label={t("Tomorrow's arrivals")}>
         <div className="sheet-head">
-          <h2>Tomorrow&apos;s arrivals</h2>
-          <span className="for">One guest per line, as the front desk or CRM wrote it. Up to 6.</span>
+          <h2>{t("Tomorrow's arrivals")}</h2>
+          <span className="for">{t("One guest per line, as the front desk or CRM wrote it. Up to 6.")}</span>
         </div>
         <div className="fields">
           <label className="label" style={{ display: "grid", gap: 4, margin: 0 }}>
-            Hotel city
+            {t("Hotel city")}
             <select value={city} onChange={(e) => setCity(e.target.value)}>
               {CITIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </label>
-          <span className="seg" role="group" aria-label="What to edit">
+          <span className="seg" role="group" aria-label={t("What to edit")}>
             {CATEGORIES.map((c) => (
               <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
-                {c.label}
+                {t(c.label)}
               </button>
             ))}
           </span>
           <span className="label" style={{ margin: 0 }}>
-            {hotelLines.length ? `Using your hotel's list (${hotelLines.length} lines, from “Your guest”)` : "Using the city's default list"}
-            {` · up to ${budget} lines change`}
+            {hotelLines.length
+              ? t("Using your hotel's list ({n} lines, from “Your guest”)", { n: hotelLines.length })
+              : t("Using the city's default list")}
+            {` · ${t("up to {n} lines change", { n: budget })}`}
           </span>
         </div>
         <div className="fields">
           <textarea
-            aria-label="Arrival notes, one guest per line"
+            aria-label={t("Arrival notes, one guest per line")}
             placeholder={"Room 204: Ms Patel. Loves Amy Winehouse, always in Dr. Martens. Nut allergy."}
             value={text}
             rows={5}
@@ -198,23 +211,25 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
             onChange={(e) => setText(e.target.value)}
           />
           <button className="btn ghost" type="button" onClick={() => setText(SAMPLE)}>
-            Sample arrivals
+            {t("Sample arrivals")}
           </button>
         </div>
         {extraNotes(text) > 0 && (
           <p className="err">
-            {extraNotes(text)} {extraNotes(text) === 1 ? "note" : "notes"} will be ignored: up to 6 guests per report.
+            {extraNotes(text) === 1
+              ? t("1 note will be ignored: up to 6 guests per report.")
+              : t("{n} notes will be ignored: up to 6 guests per report.", { n: extraNotes(text) })}
           </p>
         )}
         <div className="fields">
           <button className="btn" type="button" disabled={busy !== null} onClick={readNotes}>
-            {busy === "read" ? "Agent is reading the notes…" : "1. Read the notes"}
+            {busy === "read" ? t("Agent is reading the notes…") : t("1. Read the notes")}
           </button>
           <button className="btn ghost" type="button" disabled={busy !== null} onClick={() => byHand(null)}>
-            Skip the agent
+            {t("Skip the agent")}
           </button>
           <small className="label" style={{ margin: 0 }}>
-            The agent only keeps favourites that are written in the note; you confirm them before anything is edited.
+            {t("The agent only keeps favourites that are written in the note; you confirm them before anything is edited.")}
           </small>
         </div>
 
@@ -225,10 +240,10 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               <div className="guest-card" key={gi}>
                 <strong>{g.label}</strong> <span className="label">{g.text}</span>
                 {g.not_considered && g.not_considered.length > 0 && (
-                  <p className="other">Not considered by the edit: {g.not_considered.join(", ")}</p>
+                  <p className="other">{t("Not considered by the edit: {list}", { list: g.not_considered.join(", ") })}</p>
                 )}
                 <div className="chips">
-                  {g.favourites.length === 0 && !manual && <span className="label">No band, show, film, brand or game in this note.</span>}
+                  {g.favourites.length === 0 && !manual && <span className="label">{t("No band, show, film, brand or game in this note.")}</span>}
                   {g.favourites.map((f, fi) =>
                     f.status === "ok" ? (
                       <button
@@ -243,7 +258,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                       </button>
                     ) : f.status === "clarify" ? (
                       <span key={fi} className="ask">
-                        {f.question}{" "}
+                        {t("{n} matches for ‘{q}’. Which one do you mean?", { n: f.options!.length, q: f.query })}{" "}
                         {f.options!.map((o) => (
                           <button
                             key={o.id}
@@ -261,37 +276,37 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                           aria-pressed={!picked[key(gi, fi)]}
                           onClick={() => setPicked((p) => ({ ...p, [key(gi, fi)]: null }))}
                         >
-                          None of these
+                          {t("None of these")}
                         </button>
                       </span>
                     ) : (
                       <span key={fi} className="label">
-                        ‘{f.query}’ not found in Qloo
+                        {t("‘{query}’ not found in Qloo", { query: f.query })}
                       </span>
                     ),
                   )}
                   <input
-                    aria-label={`Add a favourite for ${g.label}`}
-                    placeholder="Add a favourite"
+                    aria-label={t("Add a favourite for {label}", { label: g.label })}
+                    placeholder={t("Add a favourite")}
                     value={adding[gi] ?? ""}
                     maxLength={120}
                     onChange={(e) => setAdding((a) => ({ ...a, [gi]: e.target.value }))}
                     onKeyDown={(e) => e.key === "Enter" && addFavourite(gi)}
                   />
                   <button type="button" className="chip" onClick={() => addFavourite(gi)}>
-                    Add
+                    {t("Add")}
                   </button>
                 </div>
               </div>
             ))}
             <div className="fields">
               <button className="btn" type="button" disabled={busy !== null} onClick={buildReport}>
-                {busy === "report" ? "Editing every list…" : "2. Build the morning report"}
+                {busy === "report" ? t("Editing every list…") : t("2. Build the morning report")}
               </button>
             </div>
             {read.trace.length > 0 && (
               <details className="trace">
-                <summary>What the agent did ({read.trace.length} tool calls)</summary>
+                <summary>{t("What the agent did ({n} tool calls)", { n: read.trace.length })}</summary>
                 <ol>
                   {read.trace.map((s, i) => (
                     <li key={i}>
@@ -307,21 +322,21 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
       </section>
 
       {report && (
-        <section className="sheet report" aria-label="Morning report">
+        <section className="sheet report" aria-label={t("Morning report")}>
           <div className="sheet-head">
             <h2>
-              Morning report · {categoryLabel(report.category)} · {report.city}
+              {t("Morning report")} · {t(categoryLabel(report.category))} · {report.city}
             </h2>
             <span className="noprint" style={{ display: "flex", gap: 8 }}>
               <button
                 className="btn ghost"
                 type="button"
-                onClick={() => navigator.clipboard?.writeText(reportText(report)).then(() => setCopied(true))}
+                onClick={() => navigator.clipboard?.writeText(reportText(report, t)).then(() => setCopied(true))}
               >
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("Copied") : t("Copy")}
               </button>
               <button className="btn" type="button" onClick={() => window.print()}>
-                Print
+                {t("Print")}
               </button>
             </span>
           </div>
@@ -332,24 +347,43 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                 <div className="report-guest" key={i}>
                   <h3>{g.label}</h3>
                   {g.not_considered && g.not_considered.length > 0 && (
-                    <p className="other">Not considered: {g.not_considered.join(", ")}</p>
+                    <p className="other">{t("Not considered: {list}", { list: g.not_considered.join(", ") })}</p>
                   )}
-                  <p className="label">{r.status === "skipped" ? "No favourites confirmed, so the list stays as it is." : "A favourite needs a pick first."}</p>
+                  <p className="label">
+                    {r.status === "skipped" ? t("No favourites confirmed, so the list stays as it is.") : t("A favourite needs a pick first.")}
+                  </p>
                 </div>
               );
             const ok = r as EditResult;
             return (
               <div className="report-guest" key={i}>
                 <h3>
-                  {g.label} <span className="for">loves {guestName(ok.guest)}</span>{" "}
+                  {g.label} <span className="for">{t("loves {names}", { names: guestName(ok.guest) })}</span>{" "}
                   <span className="count">
-                    <span className="red">{ok.changed}</span> of {ok.length} changed
+                    {t("{n} of {m} changed", { m: ok.length }).split("{n}")[0]}
+                    <span className="red">{ok.changed}</span>
+                    {t("{n} of {m} changed", { m: ok.length }).split("{n}")[1]}
                   </span>
-                  {ok.cached && <span className="badge"> cached result</span>}
+                  {ok.cached && <span className="badge"> {t("cached result")}</span>}
                 </h3>
                 {g.not_considered && g.not_considered.length > 0 && (
-                  <p className="other">Not considered: {g.not_considered.join(", ")}</p>
+                  <p className="other">{t("Not considered: {list}", { list: g.not_considered.join(", ") })}</p>
                 )}
+                {(() => {
+                  // Said openly: guests with related tastes often get the same additions.
+                  const mine = added(ok);
+                  const same = report.guests
+                    .filter((o, j) => j !== i && o.result.status === "ok")
+                    .map((o) => ({ label: o.label, n: [...added(o.result as EditResult)].filter((x) => mine.has(x)).length }))
+                    .filter((o) => o.n > 0);
+                  return same.length > 0 && mine.size > 0 ? (
+                    <p className="label">
+                      {t("Additions shared with other rooms: {list}", {
+                        list: same.map((o) => t("{n} of {m} with {room}", { n: o.n, m: mine.size, room: o.label })).join(" · "),
+                      })}
+                    </p>
+                  ) : null;
+                })()}
                 <ol className="list compact">
                   {ok.lines.map((l) => (
                     <li key={`${l.status}-${l.place.id}`} className={`row ${l.status}`}>
@@ -370,7 +404,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               </div>
             );
           })}
-          <p className="label">{LABEL} Open “Your guest (and list)” to accept or reject single changes.</p>
+          <p className="label">
+            {t(LABEL)} {t("Open “Your guest (and list)” to accept or reject single changes.")}
+          </p>
         </section>
       )}
     </>

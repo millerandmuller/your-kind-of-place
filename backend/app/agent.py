@@ -41,6 +41,14 @@ never "you" or "your" for the guest.
 """
 
 
+# The answer's language; tool outputs (notes) already come in it, place names stay as Qloo has them.
+ANSWER_IN = {
+    "en": "",
+    "de": "\nAnswer in German. Keep place names and the favourites' names exactly as the tools return them.",
+    "fr": "\nAnswer in French. Keep place names and the favourites' names exactly as the tools return them.",
+}
+
+
 class StepLog(list):
     """The trace; every appended step is also handed to `on_step` (the live stream to the UI)."""
 
@@ -58,6 +66,7 @@ class Workspace:
     """What the tools share during one run (the agent never sees raw Qloo payloads)."""
 
     def __init__(self, redliner: Redliner, city: str, budget: int, hotel_lines: list[str] | None = None):
+        self.lang = "en"
         self.r = redliner
         self.city = city
         self.budget = budget
@@ -120,7 +129,7 @@ def build_tools(ws: Workspace):
         ids = [i for i in interest_ids if i in ws.entities][:3]
         if not ids:
             return {"status": "error", "message": "resolve_interest must succeed first"}
-        out = await ws.r.edit(ws.city, [ws.entities[i] for i in ids], ws.budget, ws.hotel_lines)
+        out = await ws.r.edit(ws.city, [ws.entities[i] for i in ids], ws.budget, ws.hotel_lines, lang=ws.lang)
         ws.result = out
         ws.log.append({"tool": "edit_list", "input": {"budget": ws.budget},
                        "output": f"{out['changed']} of {out['length']} changed"})
@@ -136,7 +145,7 @@ def build_tools(ws: Workspace):
         if place is None:
             return {"status": "error", "message": "Only places returned by taste_places can be explained."}
         names = {i: e.name for i, e in ws.entities.items()}
-        note = rl.insert_note(place, names)
+        note = rl.insert_note(place, names, ws.lang)
         ws.log.append({"tool": "explain_place", "input": place_name, "output": note})
         return {"note": note, "label": "Aggregate taste affinity from Qloo, not a review."}
 
@@ -173,15 +182,16 @@ async def run_agent(
     budget: int,
     hotel_lines: list[str] | None = None,
     on_step=None,
+    lang: str = "en",
 ) -> dict[str, Any]:
     """Let the agent drive the service; if the main model fails before any tool ran, try the fallback.
-    `on_step` gets each tool call as it happens."""
+    `on_step` gets each tool call as it happens; `lang` is the language of its answer and the notes."""
     try:
-        return await _run(redliner, settings, settings.llm_model, text, city, budget, hotel_lines, on_step)
+        return await _run(redliner, settings, settings.llm_model, text, city, budget, hotel_lines, on_step, lang)
     except _ModelFailed:
         if not settings.llm_fallback_model:
             raise
-        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget, hotel_lines, on_step)
+        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget, hotel_lines, on_step, lang)
 
 
 class _ModelFailed(RuntimeError):
@@ -197,15 +207,17 @@ async def _run(
     budget: int,
     hotel_lines: list[str] | None = None,
     on_step=None,
+    lang: str = "en",
 ) -> dict[str, Any]:
     trace = start_trace()
     ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5, hotel_lines)
     ws.text = text
+    ws.lang = lang if lang in rl.LANGS else "en"
     ws.log.on_step = on_step
     agent = LlmAgent(
         name="concierge",
         model=adk_model(settings, model),
-        instruction=INSTRUCTION,
+        instruction=INSTRUCTION + ANSWER_IN[ws.lang],
         tools=build_tools(ws),
     )
     runner = InMemoryRunner(agent=agent, app_name="your-kind-of-place")

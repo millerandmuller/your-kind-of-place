@@ -179,6 +179,7 @@ class Redliner:
         budget: int,
         hotel_lines: list[str] | None = None,
         category: str = "dining",
+        lang: str = "en",
     ) -> dict[str, Any]:
         city = check_city(city)
         category = category if category in rl.KEEP else "dining"
@@ -205,7 +206,8 @@ class Redliner:
         )
         if leveled:
             taste = leveled[0]
-        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids, affinity=affinity, floor=floor)
+        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids, affinity=affinity, floor=floor,
+                           lang=lang if lang in rl.LANGS else "en")
         return {
             "match_count": len(match_ids),
             "city": city,
@@ -213,6 +215,7 @@ class Redliner:
             "budget": budget,
             "source": "hotel" if hotel_lines else "default",
             "category": category,
+            "lang": lang if lang in rl.LANGS else "en",
             "skipped": skipped,
             "default": [rl.public_place(p) for p in default],
             **result,
@@ -225,6 +228,7 @@ class Redliner:
         budget: int = 5,
         hotel_lines: list[str] | None = None,
         category: str = "dining",
+        lang: str = "en",
     ) -> dict[str, Any]:
         """Resolve (ask when unclear) → default list → taste matches → edited list."""
         city = check_city(city)
@@ -236,7 +240,7 @@ class Redliner:
             return {"status": "needs_input", "issues": issues, "resolved": [e.public() for e in entities]}
         if not entities:
             return {"status": "needs_input", "issues": [], "resolved": []}
-        out = await self.edit(city, entities, budget, hotel_lines, category)
+        out = await self.edit(city, entities, budget, hotel_lines, category, lang)
         return {
             "status": "ok",
             **out,

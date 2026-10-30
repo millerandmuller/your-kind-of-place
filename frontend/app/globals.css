@@ -15,7 +15,7 @@
   --on-accent: #fffdf8;
   --ask-line: #e9c46a;
   --ask-bg: #fff8e6;
-  --glass: rgba(244, 241, 234, 0.78);
+  --glass: rgba(244, 241, 234, 0.94);
   --font-display: var(--font-serif), Georgia, serif;
   --font-ui: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --radius: 10px;
@@ -33,11 +33,11 @@ html[data-theme="night"] {
   --red-soft: rgba(196, 30, 58, 0.12);
   --green: #7fb08a;
   --green-soft: rgba(127, 176, 138, 0.10);
-  --accent: #c41e3a;
-  --on-accent: #ffffff;
+  --accent: #f2ede4;  /* red means struck here, so buttons stay ink */
+  --on-accent: #0c0b0a;
   --ask-line: #8a6d2b;
   --ask-bg: #1d1910;
-  --glass: rgba(12, 11, 10, 0.72);
+  --glass: rgba(12, 11, 10, 0.94);
   --font-display: var(--font-fraunces), "Instrument Serif", serif;
   --font-ui: var(--font-figtree), sans-serif;
   color-scheme: dark;
@@ -290,4 +290,17 @@ html[data-theme="night"] .brand .ins { color: var(--green); }
   .nav { gap: 10px; }
   .nav .mark { font-size: 1rem; }
   .nav .links { gap: 10px; font-size: 0.8rem; }
+}
+.langs { display: inline-flex; gap: 2px; }
+.langs button { all: unset; cursor: pointer; font-size: 0.78rem; padding: 2px 6px; border-radius: 6px; color: var(--muted); }
+.langs button[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--red); border-radius: 0; }
+.langs button:focus-visible { outline: 2px solid var(--ink); }
+.sendout input, .sendout select {
+  font: inherit; font-family: var(--font-ui); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--field); color: var(--ink); min-width: 0;
+}
+html[data-theme="night"] .sendout input, html[data-theme="night"] .sendout select, html[data-theme="night"] .own input,
+html[data-theme="night"] .own textarea, html[data-theme="night"] select { border-color: #ffffff24; }
+@media (max-width: 700px) {
+  .tabs { mask-image: linear-gradient(90deg, #000 80%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 40px; }
 }

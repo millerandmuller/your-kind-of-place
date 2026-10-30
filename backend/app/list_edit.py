@@ -59,6 +59,27 @@ CHAINS = (
 UNMATCHED = "line:"  # entity id prefix for hotel-list lines Qloo doesn't know
 
 STRIKE_NOTE = "Not among this guest's top 50 taste matches"  # Qloo's page size; see match_count
+LANGS = ("en", "de", "fr")
+# The margin notes' own words per language; place names and Qloo's tags stay as Qloo has them.
+NOTE_WORDS = {
+    "en": {"loves": "Because the guest loves {}", "and": " and ", "top": "A top taste match for this guest",
+           "not50": STRIKE_NOTE, "lowest": "Lowest taste affinity on this list for this guest",
+           "nth": "{} lowest taste affinity on this list for this guest"},
+    "de": {"loves": "Weil der Gast {} liebt", "and": " und ", "top": "Ein Top-Geschmackstreffer für diesen Gast",
+           "not50": "Nicht unter den 50 stärksten Geschmackstreffern dieses Gastes",
+           "lowest": "Niedrigste Geschmacksaffinität auf dieser Liste für diesen Gast",
+           "nth": "{} Geschmacksaffinität auf dieser Liste für diesen Gast"},
+    "fr": {"loves": "Parce que le client aime {}", "and": " et ", "top": "Une forte correspondance de goût pour ce client",
+           "not50": "Pas parmi les 50 plus fortes correspondances de goût de ce client",
+           "lowest": "Affinité de goût la plus faible de cette liste pour ce client",
+           "nth": "{} affinité de goût la plus faible de cette liste pour ce client"},
+}
+_DE_NTH = {2: "Zweitniedrigste", 3: "Drittniedrigste", 4: "Viertniedrigste", 5: "Fünftniedrigste", 6: "Sechstniedrigste",
+           7: "Siebtniedrigste", 8: "Achtniedrigste", 9: "Neuntniedrigste", 10: "Zehntniedrigste"}
+
+
+def _words(lang: str) -> dict[str, str]:
+    return NOTE_WORDS.get(lang, NOTE_WORDS["en"])
 BUDGETS = (3, 5, 10)
 
 
@@ -235,15 +256,16 @@ def place_tags(place: dict[str, Any]) -> list[str]:
     return [t.lower() for t in out if not (t.lower() in seen or seen.add(t.lower()))]
 
 
-def insert_note(place: dict[str, Any], names: dict[str, str]) -> str:
+def insert_note(place: dict[str, Any], names: dict[str, str], lang: str = "en") -> str:
     """'Because the guest loves Amy Winehouse · live jazz · soulful · late night · Soho' — every part from Qloo."""
+    w = _words(lang)
     ds = drivers(place, names)
     if not ds:
-        lead = "A top taste match for this guest"
+        lead = w["top"]
     elif len(ds) > 1 and ds[0]["score"] - ds[1]["score"] < 0.1:
-        lead = f"Because the guest loves {ds[0]['name']} and {ds[1]['name']}"
+        lead = w["loves"].format(f"{ds[0]['name']}{w['and']}{ds[1]['name']}")
     else:
-        lead = f"Because the guest loves {ds[0]['name']}"
+        lead = w["loves"].format(ds[0]["name"])
     hood = (place.get("properties") or {}).get("neighborhood")
     return " · ".join(x for x in (lead, *place_tags(place), hood) if x)
 
@@ -295,13 +317,16 @@ def _ordinal(n: int) -> str:
     return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
 
 
-def strike_note(rank: list[dict[str, Any]] | None) -> str:
+def strike_note(rank: list[dict[str, Any]] | None, lang: str = "en") -> str:
     """The reason in the margin: the place's taste-affinity rank on this list, when Qloo scored it."""
+    w = _words(lang)
     if not rank:
-        return STRIKE_NOTE
+        return w["not50"]
     r = rank[0]["rank_from_bottom"]
-    which = "Lowest" if r == 1 else f"{_ordinal(r)} lowest"
-    return f"{which} taste affinity on this list for this guest"
+    if r == 1:
+        return w["lowest"]
+    which = {"de": _DE_NTH.get(r, f"{r}.-niedrigste"), "fr": f"{r}e"}.get(lang, _ordinal(r))
+    return w["nth"].format(which)
 
 
 def _affinity_rank(place: dict[str, Any], default: list[dict[str, Any]], affinity: dict[str, float]):
@@ -321,6 +346,7 @@ def redline(
     match_ids: set[str] | None = None,
     affinity: dict[str, float] | None = None,
     floor: int | None = None,
+    lang: str = "en",
 ) -> dict[str, Any]:
     """Edit `default` for a guest. Pure function.
 
@@ -353,11 +379,11 @@ def redline(
     for i, p in enumerate(default):
         if i in inserts:
             rank = _affinity_rank(p, default, affinity)
-            lines.append(Line("strike", p, strike_note(rank), why=rank, affinity=affinity.get(p["entity_id"])))
+            lines.append(Line("strike", p, strike_note(rank, lang), why=rank, affinity=affinity.get(p["entity_id"])))
             new = inserts[i]
             a = (new.get("query") or {}).get("affinity")
             lines.append(
-                Line("insert", new, insert_note(new, names), drivers(new, names), replaces=p["entity_id"],
+                Line("insert", new, insert_note(new, names, lang), drivers(new, names), replaces=p["entity_id"],
                      affinity=float(a) if isinstance(a, (int, float)) else None)
             )
             final.append(new)

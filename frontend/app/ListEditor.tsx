@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Arrivals from "./Arrivals";
 import Nav from "./Nav";
+import { LangContext, useLang, useT } from "./LangContext";
+import { LANGS, LOCALE, translate, type Lang, type Vars } from "@/lib/lang";
 import {
   api,
   BUDGETS,
@@ -32,27 +34,44 @@ import {
 
 type AffinityRank = { rank_from_bottom: number; of: number };
 
+type T = (en: string, vars?: Vars) => string;
+
+// "Every guest gets the *same list*" → text with <em> (single stars) and <strong> (double stars).
+function rich(s: string) {
+  return s.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).map((part, i) =>
+    part.startsWith("**") ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : part.startsWith("*") ? (
+      <em key={i}>{part.slice(1, -1)}</em>
+    ) : (
+      part
+    ),
+  );
+}
+
 type Tab = "default" | "g1" | "g2" | "both" | "own" | "arrivals";
 
 export type StartState = {
+  lang: Lang;
   tab?: Tab;
   ex: number;
   lines: number;
   own: { city?: string; category: Category; favs: string[]; ids: string[] };
 };
 
-function meta(p: Place): string {
-  if (p.in_house) return "Hotel's own · kept as is";
-  if (p.in_qloo === false) return "Not matched to a restaurant or bar in Qloo · kept as is";
+function meta(p: Place, t: T): string {
+  if (p.in_house) return t("Hotel's own · kept as is");
+  if (p.in_qloo === false) return t("Not matched to a restaurant or bar in Qloo · kept as is");
   const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
-  if (p.typed) return `${base} · listed as “${p.typed}”`;
+  if (p.typed) return t("{base} · listed as “{typed}”", { base, typed: p.typed });
   return base;
 }
 
 function MapLink({ p, city }: { p: Place; city?: string }) {
+  const t = useT();
   if (p.in_qloo === false || p.in_house) return null;
   return (
-    <a className="maplink noprint" href={mapsUrl(p, city)} target="_blank" rel="noreferrer" aria-label={`${p.name} on Google Maps`} title="Open in Google Maps">
+    <a className="maplink noprint" href={mapsUrl(p, city)} target="_blank" rel="noreferrer" aria-label={t("{name} on Google Maps", { name: p.name })} title={t("Open in Google Maps")}>
       <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
         <path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5c0 3.4 4.5 8.5 4.5 8.5s4.5-5.1 4.5-8.5A4.5 4.5 0 0 0 8 1.5Zm0 6.2a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4Z" fill="currentColor" />
       </svg>
@@ -61,13 +80,14 @@ function MapLink({ p, city }: { p: Place; city?: string }) {
 }
 
 function Affinity({ value }: { value?: number }) {
+  const t = useT();
   if (value === undefined || value === null) return null;
   return (
-    <span className="aff" title="Qloo taste affinity of this guest for the place (0 to 1)">
+    <span className="aff" title={t("Qloo taste affinity of this guest for the place (0 to 1)")}>
       <span className="bar" aria-hidden="true">
         <span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` }} />
       </span>
-      <span className="val">affinity {value.toFixed(2)}</span>
+      <span className="val">{t("affinity {v}", { v: value.toFixed(2) })}</span>
     </span>
   );
 }
@@ -76,11 +96,22 @@ function ignoredLines(text: string): number {
   return Math.max(0, text.split("\n").filter((l) => l.trim()).length - 10);
 }
 
-function pairLabel(p: DemoPair): string {
-  return `${p.city}: ${guestName(p.guest1)} vs. ${guestName(p.guest2)}`;
+function pairLabel(p: DemoPair, t: T): string {
+  return t("{city}: {a} vs. {b}", { city: p.city, a: guestName(p.guest1), b: guestName(p.guest2) });
 }
 
 export default function ListEditor({ start }: { start: StartState }) {
+  const [lang, setLang] = useState<Lang>(start.lang);
+  return (
+    <LangContext.Provider value={{ lang, setLang }}>
+      <Editor start={start} />
+    </LangContext.Provider>
+  );
+}
+
+function Editor({ start }: { start: StartState }) {
+  const lang = useLang();
+  const t = useT();
   const [pairs, setPairs] = useState<DemoPair[]>([]);
   const [pairIdx, setPairIdx] = useState(start.ex);
   const [budget, setBudget] = useState(start.lines);
@@ -123,11 +154,11 @@ export default function ListEditor({ start }: { start: StartState }) {
     let live = true;
     const load = (key: "g1" | "g2", g: typeof pair.guest1) =>
       api
-        .edit(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget)
+        .edit(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget, undefined, "dining", lang)
         .then((res) => {
           if (!live) return;
           if (res.status === "ok") setResults((r) => ({ ...r, [key]: res }));
-          else setError("This example needs a pick first. Try another example.");
+          else setError(t("This example needs a pick first. Try another example."));
         })
         .catch((e) => live && setError(e.message));
     load("g1", pair.guest1);
@@ -135,7 +166,7 @@ export default function ListEditor({ start }: { start: StartState }) {
     return () => {
       live = false;
     };
-  }, [pair, budget, attempt]);
+  }, [pair, budget, attempt, lang, t]);
 
   const resetDemo = () => {
     setResults((r) => ({ own: r.own }));
@@ -173,18 +204,17 @@ export default function ListEditor({ start }: { start: StartState }) {
     <main className="wrap">
       <Nav />
       <header className="hero noprint">
-        <h1>
-          Every guest gets the <em>same list</em>. We edit it into <strong>their kind of place</strong>.
-        </h1>
+        <h1>{rich(t("Every guest gets the *same list*. We edit it into **their kind of place**."))}</h1>
         <p>
-          The hotel&apos;s list of restaurants and bars, edited per guest in track changes, with a reason from Qloo&apos;s taste
-          data on every change.
+          {t(
+            "The hotel's list of restaurants and bars, edited per guest in track changes, with a reason from Qloo's taste data on every change.",
+          )}
         </p>
       </header>
 
       <div className="controls noprint">
         <label>
-          Example
+          {t("Example")}
           <select
             value={pairIdx}
             onChange={(e) => {
@@ -197,14 +227,14 @@ export default function ListEditor({ start }: { start: StartState }) {
           >
             {pairs.map((p, i) => (
               <option key={i} value={i}>
-                {pairLabel(p)}
+                {pairLabel(p, t)}
               </option>
             ))}
           </select>
         </label>
         <span className="ctl">
-          Lines that may change
-          <span className="seg" role="group" aria-label="Lines that may change">
+          {t("Lines that may change")}
+          <span className="seg" role="group" aria-label={t("Lines that may change")}>
             {BUDGETS.map((b) => (
               <button
                 key={b}
@@ -225,13 +255,13 @@ export default function ListEditor({ start }: { start: StartState }) {
         </span>
       </div>
 
-      <div className="tabs noprint" role="tablist" aria-label="Whose list">
-        <TabButton id="default" tab={tab} choose={choose} kicker={pair ? `Hotel in ${pair.city}` : "Hotel"} title="Default list" />
-        <TabButton id="g1" tab={tab} choose={choose} kicker="Guest 1 checks in" title={pair ? guestName(pair.guest1) : "…"} />
-        <TabButton id="g2" tab={tab} choose={choose} kicker="Guest 2, same hotel" title={pair ? guestName(pair.guest2) : "…"} />
-        <TabButton id="both" tab={tab} choose={choose} kicker="Compare" title="Guest 1 | Guest 2" />
-        <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest (and list)" />
-        <TabButton id="arrivals" tab={tab} choose={choose} kicker="Tomorrow's arrivals" title="Morning report" />
+      <div className="tabs noprint" role="tablist" aria-label={t("Whose list")}>
+        <TabButton id="default" tab={tab} choose={choose} kicker={pair ? t("Hotel in {city}", { city: pair.city }) : t("Hotel")} title={t("Default list")} />
+        <TabButton id="g1" tab={tab} choose={choose} kicker={t("Guest 1 checks in")} title={pair ? guestName(pair.guest1) : "…"} />
+        <TabButton id="g2" tab={tab} choose={choose} kicker={t("Guest 2, same hotel")} title={pair ? guestName(pair.guest2) : "…"} />
+        <TabButton id="both" tab={tab} choose={choose} kicker={t("Compare")} title={`${t("Guest 1")} | ${t("Guest 2")}`} />
+        <TabButton id="own" tab={tab} choose={choose} kicker={t("Try your own")} title={t("Your guest (and list)")} />
+        <TabButton id="arrivals" tab={tab} choose={choose} kicker={t("Tomorrow's arrivals")} title={t("Morning report")} />
       </div>
 
       {error && (
@@ -245,7 +275,7 @@ export default function ListEditor({ start }: { start: StartState }) {
               setAttempt((a) => a + 1);
             }}
           >
-            Try again
+            {t("Try again")}
           </button>
         </p>
       )}
@@ -291,38 +321,47 @@ export default function ListEditor({ start }: { start: StartState }) {
           <div className="sheet-head">
             <div>
               <h2>
-                {categoryLabel(current?.category)}
-                {current ? ` in ${current.city}` : ""}
+                {current
+                  ? t("{what} in {city}", { what: t(categoryLabel(current.category)), city: current.city })
+                  : t(categoryLabel())}
               </h2>
               <span className="for">
                 {!current
-                  ? "For every guest"
+                  ? t("For every guest")
                   : tab === "default"
-                    ? "Left: the list every guest gets. Right: the same list for Guest 1."
-                    : `For a guest who loves ${current.guest.map((g) => (g.kind ? `${g.name} (${g.kind.replace("_", " ")})` : g.name)).join(" + ")}`}
+                    ? t("Left: the list every guest gets. Right: the same list for Guest 1.")
+                    : t("For a guest who loves {names}", {
+                        names: current.guest.map((g) => (g.kind ? `${g.name} (${g.kind.replace("_", " ")})` : g.name)).join(" + "),
+                      })}
               </span>
             </div>
             <div>
-              {current?.cached && <span className="badge" title="Answered from saved Qloo results">cached result</span>}{" "}
-              {current && tab === "own" && <span className="badge">up to {current.budget} lines change</span>}{" "}
+              {current?.cached && <span className="badge" title={t("Answered from saved Qloo results")}>{t("cached result")}</span>}{" "}
+              {current && tab === "own" && <span className="badge">{t("up to {n} lines change", { n: current.budget })}</span>}{" "}
               {current && tab !== "default" && (
                 <span className="count">
-                  <span className="red">{current.changed - [...rej].length}</span> of {current.length} changed
+                  {t("{n} of {m} changed", { m: current.length }).split("{n}")[0]}
+                  <span className="red">{current.changed - [...rej].length}</span>
+                  {t("{n} of {m} changed", { m: current.length }).split("{n}")[1]}
                 </span>
               )}
             </div>
           </div>
           <p className="label">
-            {current?.source === "hotel" ? HOTEL_LABEL : DEFAULT_LABEL}
-            {current?.skipped?.length ? `. Skipped as repeats: ${current.skipped.join(", ")}` : ""}
+            {t(current?.source === "hotel" ? HOTEL_LABEL : DEFAULT_LABEL)}
+            {current?.skipped?.length ? `. ${t("Skipped as repeats: {list}", { list: current.skipped.join(", ") })}` : ""}
             {tab === "own" && current?.source === "hotel" && ignoredLines(hotelText) > 0
-              ? `. ${ignoredLines(hotelText)} ${ignoredLines(hotelText) === 1 ? "line" : "lines"} ignored: only the first 10 are used`
+              ? `. ${
+                  ignoredLines(hotelText) === 1
+                    ? t("1 line ignored: only the first 10 are used")
+                    : t("{n} lines ignored: only the first 10 are used", { n: ignoredLines(hotelText) })
+                }`
               : ""}
-            {". Red: struck for this guest. Green: added for this guest."}
+            {`. ${t("Red: struck for this guest. Green: added for this guest.")}`}
           </p>
 
           {!current ? (
-            <div aria-busy="true" aria-label="Loading">
+            <div aria-busy="true" aria-label={t("Loading")}>
               {Array.from({ length: 6 }).map((_, i) => (
                 <div className="skeleton" key={i} />
               ))}
@@ -333,8 +372,9 @@ export default function ListEditor({ start }: { start: StartState }) {
             <>
               {current.changed === 0 && (
                 <p className="ask">
-                  Nothing changed for this guest: no entry on this list is outside the guest&apos;s top 50 taste matches, or
-                  there is no new match to put in its place.
+                  {t(
+                    "Nothing changed for this guest: no entry on this list is outside the guest's top 50 taste matches, or there is no new match to put in its place.",
+                  )}
                 </p>
               )}
               <EditedList r={current} rejected={rej} toggle={toggle} open={open} setOpen={setOpen} />
@@ -345,7 +385,7 @@ export default function ListEditor({ start }: { start: StartState }) {
             <div className="foot noprint">
               <span className="share">
                 {(tab === "g1" || tab === "g2" || tab === "default") && shareCount !== null
-                  ? `Guest 1 and Guest 2 share ${shareCount} of ${g1!.length}`
+                  ? t("Guest 1 and Guest 2 share {n} of {m}", { n: shareCount, m: g1!.length })
                   : ""}
               </span>
               {tab === "default" && (
@@ -358,18 +398,18 @@ export default function ListEditor({ start }: { start: StartState }) {
                       choose("own");
                     }}
                   >
-                    Use your hotel&apos;s own list
+                    {t("Use your hotel's own list")}
                   </button>
                   <button className="btn" type="button" onClick={() => choose("g1")}>
-                    Every reason for Guest 1 →
+                    {t("Every reason for Guest 1 →")}
                   </button>
                 </span>
               )}
               {tab !== "default" && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <small className="label" style={{ margin: 0 }}>Accept / reject stays on this screen only.</small>
+                  <small className="label" style={{ margin: 0 }}>{t("Accept / reject stays on this screen only.")}</small>
                   <button className="btn" type="button" onClick={() => setSendOpen((s) => !s)}>
-                    Message for the guest
+                    {t("Message for the guest")}
                   </button>
                 </span>
               )}
@@ -381,9 +421,11 @@ export default function ListEditor({ start }: { start: StartState }) {
       {sendOpen && current && tab !== "default" && <SendOut r={current} rejected={rej} />}
 
       <p className="label noprint" style={{ marginTop: 18 }} hidden={tab === "arrivals"}>
-        {LABEL} Notes name the guest&apos;s favourite that Qloo&apos;s explainability says drove the place, then the
-        place&apos;s own Qloo tags; the bar is the guest&apos;s Qloo taste affinity for it.{" "}
-        <Link href="/how">How this works</Link>
+        {t(LABEL)}{" "}
+        {t(
+          "Notes name the guest's favourite that Qloo's explainability says drove the place, then the place's own Qloo tags; the bar is the guest's Qloo taste affinity for it.",
+        )}{" "}
+        <Link href="/how">{t("How this works")}</Link>
       </p>
     </main>
   );
@@ -391,26 +433,27 @@ export default function ListEditor({ start }: { start: StartState }) {
 
 // The first screen: the list every guest gets, and the same list in red pen for Guest 1, no click needed.
 function BeforeAfter({ r }: { r: EditResult }) {
+  const t = useT();
   return (
     <div className="ba">
       <div>
-        <h3>The hotel&apos;s list</h3>
-        <span className="for">every guest</span>
+        <h3>{t("The hotel's list")}</h3>
+        <span className="for">{t("every guest")}</span>
         <ol className="list compact">
           {r.default.map((p, i) => (
             <li className="row" key={p.id}>
               <span className="num">{i + 1}</span>
               <div className="place">
                 <div className="name">{p.name}</div>
-                <div className="meta">{meta(p)}</div>
+                <div className="meta">{meta(p, t)}</div>
               </div>
             </li>
           ))}
         </ol>
       </div>
       <div>
-        <h3>For Guest 1</h3>
-        <span className="for">loves {guestName(r.guest)}</span>
+        <h3>{t("For Guest 1")}</h3>
+        <span className="for">{t("loves {names}", { names: guestName(r.guest) })}</span>
         <ol className="list compact">
           {r.lines.map((l) => (
             <li className={`row ${l.status}`} key={`${l.status}-${l.place.id}`}>
@@ -440,6 +483,7 @@ function SideBySide({
   rb: Set<string>;
   share: number;
 }) {
+  const t = useT();
   const fa = finalList(a, ra);
   const fb = finalList(b, rb);
   const inB = new Set(fb.map((p) => p.id));
@@ -450,7 +494,7 @@ function SideBySide({
     return (
       <div className="col">
         <h3>{title}</h3>
-        <span className="for">loves {guestName(r.guest)}</span>
+        <span className="for">{t("loves {names}", { names: guestName(r.guest) })}</span>
         <ol className="list compact">
           {list.map((p, i) => (
             <li key={p.id} className={`row ${added.has(p.id) ? "insert" : ""}`}>
@@ -458,7 +502,7 @@ function SideBySide({
               <div className="place">
                 <div className="name">{p.name}</div>
                 <MapLink p={p} city={r.city} />
-                <div className="meta">{other.has(p.id) ? "on both lists" : meta(p)}</div>
+                <div className="meta">{other.has(p.id) ? t("on both lists") : meta(p, t)}</div>
                 {added.has(p.id) && notes.get(p.id) && <div className="cnote">{notes.get(p.id)}</div>}
               </div>
             </li>
@@ -468,17 +512,17 @@ function SideBySide({
     );
   };
   return (
-    <section className="sheet animate" aria-label="Guest 1 and Guest 2 side by side">
+    <section className="sheet animate" aria-label={t("Guest 1 and Guest 2 side by side")}>
       <div className="sheet-head">
-        <h2>Same hotel in {a.city}, two guests</h2>
-        <span className="share">
-          Guest 1 and Guest 2 share {share} of {a.length}
-        </span>
+        <h2>{t("Same hotel in {city}, two guests", { city: a.city })}</h2>
+        <span className="share">{t("Guest 1 and Guest 2 share {n} of {m}", { n: share, m: a.length })}</span>
       </div>
-      <p className="label">Green: added for that guest. Each list as the guest would get it (rejected changes undone).</p>
+      <p className="label">
+        {t("Green: added for that guest. Each list as the guest would get it (rejected changes undone).")}
+      </p>
       <div className="cols">
-        {col(a, fa, inB, "Guest 1")}
-        {col(b, fb, inA, "Guest 2")}
+        {col(a, fa, inB, t("Guest 1"))}
+        {col(b, fb, inA, t("Guest 2"))}
       </div>
     </section>
   );
@@ -506,6 +550,7 @@ function EditedList({
   open: string | null;
   setOpen: (id: string | null) => void;
 }) {
+  const t = useT();
   const numbers: number[] = [];
   const order: number[] = [];
   r.lines.forEach((l, i) => {
@@ -526,7 +571,7 @@ function EditedList({
             <div className="place">
               <div className="name">{l.place.name}</div>
               <MapLink p={l.place} city={r.city} />
-              <div className="meta">{meta(l.place)}</div>
+              <div className="meta">{meta(l.place, t)}</div>
             </div>
             {l.status === "keep" ? (
               <span />
@@ -539,10 +584,10 @@ function EditedList({
                 {l.status === "strike" && (
                   <div className="decide">
                     <button type="button" aria-pressed={!isRejected} onClick={() => toggle(strikeId, false)}>
-                      Accept
+                      {t("Accept")}
                     </button>
                     <button type="button" aria-pressed={isRejected} onClick={() => toggle(strikeId, true)}>
-                      Reject
+                      {t("Reject")}
                     </button>
                   </div>
                 )}
@@ -563,23 +608,35 @@ function ordinal(n: number): string {
 }
 
 function Detail({ line, r }: { line: Line; r: EditResult }) {
+  const t = useT();
+  const lang = useLang();
   const p = line.place;
   const rank = line.status === "strike" ? (line.why as unknown as AffinityRank[] | undefined)?.[0] : undefined;
   if (line.status === "strike") {
     return (
       <div className="detail">
         <p>
-          Qloo ranked {r.match_count} places in {r.city} for a guest who loves {guestName(r.guest)}. {p.name} is not
-          among them, so it made room for a closer match.
+          {t(
+            "Qloo ranked {n} places in {city} for a guest who loves {names}. {place} is not among them, so it made room for a closer match.",
+            { n: r.match_count, city: r.city, names: guestName(r.guest), place: p.name },
+          )}
         </p>
         {rank && (
           <p>
-            Of the {rank.of} places on this list, it has the{" "}
-            {rank.rank_from_bottom === 1 ? "lowest" : `${ordinal(rank.rank_from_bottom)} lowest`} taste affinity for this
-            guest in Qloo.
+            {rank.rank_from_bottom === 1
+              ? t("Of the {of} places on this list, it has the lowest taste affinity for this guest in Qloo.", { of: rank.of })
+              : t("Of the {of} places on this list, it has the {nth} lowest taste affinity for this guest in Qloo.", {
+                  of: rank.of,
+                  nth:
+                    lang === "de"
+                      ? `${rank.rank_from_bottom}.`
+                      : lang === "fr"
+                        ? `${rank.rank_from_bottom}e`
+                        : ordinal(rank.rank_from_bottom),
+                })}
           </p>
         )}
-        <p className="src">It stays on the default list for other guests. Reject the change to keep it here.</p>
+        <p className="src">{t("It stays on the default list for other guests. Reject the change to keep it here.")}</p>
       </div>
     );
   }
@@ -588,17 +645,17 @@ function Detail({ line, r }: { line: Line; r: EditResult }) {
     <div className="detail">
       {why.length > 0 && (
         <p>
-          <strong>Driven most by {why[0].name}</strong>
-          {why.length > 1 ? `, then ${why.slice(1).map((w) => w.name).join(", ")}` : ""}.
+          <strong>{t("Driven most by {name}", { name: why[0].name })}</strong>
+          {why.length > 1 ? t(", then {names}", { names: why.slice(1).map((w) => w.name).join(", ") }) : ""}.
         </p>
       )}
       <p>
         {[p.kind, p.neighborhood, p.address].filter(Boolean).join(" · ")}
         {p.price_level ? ` · ${"$".repeat(Math.min(4, p.price_level))}` : ""}
       </p>
-      {p.description && <p>“{p.description}” <span className="src">(Qloo place description)</span></p>}
+      {p.description && <p>“{p.description}” <span className="src">{t("(Qloo place description)")}</span></p>}
       <p className="src">
-        Source: Qloo Insights with explainability for this guest&apos;s favourites. {LABEL}
+        {t("Source: Qloo Insights with explainability for this guest's favourites.")} {t(LABEL)}
       </p>
     </div>
   );
@@ -606,83 +663,140 @@ function Detail({ line, r }: { line: Line; r: EditResult }) {
 
 type Channel = "whatsapp" | "email";
 
-function stayDate(iso: string): string {
+// The guest's message, written per language (a French guest can get French from an English desk).
+const MESSAGE: Record<Lang, {
+  dear: (n: string) => string;
+  welcome: (hotel: string, city: string, when: string, what: string) => string;
+  what: Record<string, string>;
+  guest: string;
+  ourHotel: string;
+  ask: string;
+  regards: string;
+  team: string;
+  subject: (city: string, hotel: string) => string;
+}> = {
+  en: {
+    dear: (n) => `Dear ${n},`,
+    welcome: (h, c, w, x) => `Welcome to ${h}. For your stay in ${c}${w ? ` from ${w}` : ""} we have picked a few ${x} we think you will enjoy:`,
+    what: { dining: "restaurants and bars", nightlife: "places for live music and a night out", museums: "museums and galleries" },
+    guest: "guest",
+    ourHotel: "our hotel",
+    ask: "Just let us know if you would like us to book or arrange anything.",
+    regards: "Kind regards,",
+    team: "The concierge team",
+    subject: (c, h) => `Your ${c} picks from ${h}`,
+  },
+  de: {
+    dear: (n) => `Guten Tag ${n},`,
+    welcome: (h, c, w, x) => `willkommen im ${h}. Für Ihren Aufenthalt in ${c}${w ? ` ab dem ${w}` : ""} haben wir einige ${x} ausgewählt, die Ihnen gefallen dürften:`,
+    what: { dining: "Restaurants und Bars", nightlife: "Orte für Livemusik und einen Abend in der Stadt", museums: "Museen und Galerien" },
+    guest: "lieber Gast",
+    ourHotel: "unserem Hotel",
+    ask: "Sagen Sie uns gern Bescheid, wenn wir etwas für Sie reservieren oder organisieren dürfen.",
+    regards: "Mit freundlichen Grüßen",
+    team: "Ihr Concierge-Team",
+    subject: (c, h) => `Ihre Empfehlungen für ${c} vom ${h}`,
+  },
+  fr: {
+    dear: (n) => `Bonjour ${n},`,
+    welcome: (h, c, w, x) => `bienvenue à ${h}. Pour votre séjour à ${c}${w ? ` à partir du ${w}` : ""}, nous avons choisi quelques ${x} qui devraient vous plaire :`,
+    what: { dining: "restaurants et bars", nightlife: "lieux de musique live et de sortie", museums: "musées et galeries" },
+    guest: "cher client",
+    ourHotel: "notre hôtel",
+    ask: "N’hésitez pas à nous demander si vous souhaitez que nous réservions ou organisions quoi que ce soit.",
+    regards: "Bien cordialement,",
+    team: "L’équipe de conciergerie",
+    subject: (c, h) => `Vos adresses à ${c}, de la part de ${h}`,
+  },
+};
+
+function stayDate(iso: string, lang: Lang): string {
   const d = new Date(`${iso}T12:00:00`);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long", year: "numeric" });
 }
 
 function guestMessage(
   r: EditResult,
   rejected: Set<string>,
-  f: { guest: string; hotel: string; date: string },
+  f: { guest: string; hotel: string; date: string; lang: Lang },
   channel: Channel,
 ): string {
-  const bold = (t: string) => (channel === "whatsapp" ? `*${t}*` : t);
-  const what =
-    r.category === "nightlife"
-      ? "places for live music and a night out"
-      : r.category === "museums"
-        ? "museums and galleries"
-        : "restaurants and bars";
+  const m = MESSAGE[f.lang];
+  const bold = (x: string) => (channel === "whatsapp" ? `*${x}*` : x);
   const rows = finalList(r, rejected).map((p, i) => {
     const about = [p.neighborhood, ...(p.tags ?? []).slice(0, 2)].filter(Boolean).join(", ");
     const link = p.in_qloo === false || p.in_house ? "" : `\n   ${mapsUrl(p, r.city)}`;
     return `${i + 1}. ${bold(p.name)}${about ? ` (${about})` : ""}${link}`;
   });
-  const when = stayDate(f.date);
-  const hotel = f.hotel.trim() || "our hotel";
+  const hotel = f.hotel.trim() || m.ourHotel;
   const body = [
-    `Dear ${f.guest.trim() || "guest"},`,
+    m.dear(f.guest.trim() || m.guest),
     "",
-    `Welcome to ${hotel}. For your stay in ${r.city}${when ? ` from ${when}` : ""} we have picked a few ${what} we think you will enjoy:`,
+    m.welcome(hotel, r.city, stayDate(f.date, f.lang), m.what[r.category ?? "dining"] ?? m.what.dining),
     "",
     ...rows,
     "",
-    "Just let us know if you would like us to book or arrange anything.",
+    m.ask,
     "",
-    "Kind regards,",
-    f.hotel.trim() ? `The concierge team, ${hotel}` : "The concierge team",
+    m.regards,
+    f.hotel.trim() ? `${m.team}, ${hotel}` : m.team,
   ].join("\n");
-  return channel === "email" ? `Subject: Your ${r.city} picks from ${hotel}\n\n${body}` : body;
+  return channel === "email" ? `${translate(f.lang, "Subject")}: ${m.subject(r.city, hotel)}\n\n${body}` : body;
 }
 
 function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
-  const [f, setF] = useState({ guest: "", hotel: "", date: new Date().toISOString().slice(0, 10) });
+  const t = useT();
+  const ui = useLang();
+  const [f, setF] = useState({ guest: "", hotel: "", date: new Date().toISOString().slice(0, 10), lang: ui });
   const [copied, setCopied] = useState<Channel | null>(null);
-  const text = guestMessage(r, rejected, f, "email").replace(/^Subject: .*\n\n/, "");
+  const text = guestMessage(r, rejected, f, "whatsapp").replace(/\*/g, "");
   const copy = (c: Channel) => navigator.clipboard?.writeText(guestMessage(r, rejected, f, c)).then(() => setCopied(c));
+  const set = (patch: Partial<typeof f>) => {
+    setCopied(null);
+    setF({ ...f, ...patch });
+  };
   return (
-    <section className="sheet sendout" aria-label="Message for the guest">
+    <section className="sheet sendout" aria-label={t("Message for the guest")}>
       <div className="sheet-head noprint">
-        <h2>Message for the guest</h2>
+        <h2>{t("Message for the guest")}</h2>
         <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn ghost" type="button" onClick={() => copy("whatsapp")}>
-            {copied === "whatsapp" ? "Copied" : "Copy for WhatsApp"}
+            {copied === "whatsapp" ? t("Copied") : t("Copy for WhatsApp")}
           </button>
           <button className="btn ghost" type="button" onClick={() => copy("email")}>
-            {copied === "email" ? "Copied" : "Copy for email"}
+            {copied === "email" ? t("Copied") : t("Copy for email")}
           </button>
           <button className="btn" type="button" onClick={() => window.print()}>
-            Print
+            {t("Print")}
           </button>
         </span>
       </div>
       <div className="fields noprint">
         <label className="label">
-          Guest
-          <input value={f.guest} placeholder="Ms Patel" maxLength={60} onChange={(e) => { setCopied(null); setF({ ...f, guest: e.target.value }); }} />
+          {t("Guest")}
+          <input value={f.guest} placeholder="Ms Patel" maxLength={60} onChange={(e) => set({ guest: e.target.value })} />
         </label>
         <label className="label">
-          Hotel
-          <input value={f.hotel} placeholder="The Hotel" maxLength={60} onChange={(e) => { setCopied(null); setF({ ...f, hotel: e.target.value }); }} />
+          {t("Hotel")}
+          <input value={f.hotel} placeholder="The Hotel" maxLength={60} onChange={(e) => set({ hotel: e.target.value })} />
         </label>
         <label className="label">
-          Arrival
-          <input type="date" value={f.date} onChange={(e) => { setCopied(null); setF({ ...f, date: e.target.value }); }} />
+          {t("Arrival")}
+          <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
+        </label>
+        <label className="label">
+          {t("Guest's language")}
+          <select value={f.lang} onChange={(e) => set({ lang: e.target.value as Lang })}>
+            {LANGS.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
-      <pre>{text}</pre>
-      <p className="label noprint">Nothing is sent from here: copy the text into WhatsApp or your email, or print it.</p>
+      <pre lang={f.lang}>{text}</pre>
+      <p className="label noprint">{t("Nothing is sent from here: copy the text into WhatsApp or your email, or print it.")}</p>
     </section>
   );
 }
@@ -704,6 +818,8 @@ function OwnGuest({
   onStart: () => void;
   onResult: (r: EditResult) => void;
 }) {
+  const lang = useLang();
+  const t = useT();
   const [city, setCity] = useState(start.city && CITIES.includes(start.city) ? start.city : "London");
   const [category, setCategory] = useState<Category>(start.category);
   const [names, setNames] = useState([0, 1, 2].map((i) => start.favs[i] ?? ""));
@@ -733,7 +849,7 @@ function OwnGuest({
         .map((name, i) => ({ name: name.trim(), id: chosen[i] }))
         .filter((x) => x.name.length >= 2);
       if (!interests.length) {
-        setErr("Type at least one favourite: a band, show, film, brand or game.");
+        setErr(t("Type at least one favourite: a band, show, film, brand or game."));
         return;
       }
       if (inFlight.current) return;
@@ -744,7 +860,7 @@ function OwnGuest({
       setAgent(null);
       onStart();
       try {
-        const r = await api.edit(city, interests, budget, hotelLines(), category);
+        const r = await api.edit(city, interests, budget, hotelLines(), category, lang);
         if (r.status === "ok") onResult(r);
         else setIssues((r as NeedsInput).issues);
       } catch (e) {
@@ -754,7 +870,7 @@ function OwnGuest({
         setBusy(null);
       }
     },
-    [names, ids, city, budget, hotelLines, category, onStart, onResult],
+    [names, ids, city, budget, hotelLines, category, onStart, onResult, lang, t],
   );
 
   const linked = useRef(start.favs.length > 0);
@@ -767,7 +883,7 @@ function OwnGuest({
 
   const runAgent = async () => {
     if (text.trim().length < 3) {
-      setErr("Describe the guest first, e.g. “loves Amy Winehouse and Dr. Martens”.");
+      setErr(t("Describe the guest first, e.g. “loves Amy Winehouse and Dr. Martens”."));
       return;
     }
     if (inFlight.current) return;
@@ -783,7 +899,7 @@ function OwnGuest({
     try {
       const lines = hotelLines();
       const r = await agentStream(
-        { text, city, budget, hotel_list: lines.length ? lines : undefined },
+        { text, city, budget, hotel_list: lines.length ? lines : undefined, lang },
         (s) => setSteps((x) => [...x, s]),
       );
       setAgent({ said: r.agent_said, trace: r.trace, other: (r as EditResult).not_considered });
@@ -810,7 +926,7 @@ function OwnGuest({
         setNames(n);
         setIds(chosen);
         setIssues(remapped);
-      } else setErr("The agent couldn't finish. Use the fields above instead.");
+      } else setErr(t("The agent couldn't finish. Use the fields above instead."));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -832,7 +948,11 @@ function OwnGuest({
     setNames(n);
     setIds(c);
     setIssues((all) => all.filter((x) => x.field !== field));
-    setErr(`Qloo's search has no other match for ‘${query}’. Try the full name as the brand or artist writes it (e.g. “Dr. Martens”).`);
+    setErr(
+      t("Qloo's search has no other match for ‘{query}’. Try the full name as the brand or artist writes it (e.g. “Dr. Martens”).", {
+        query,
+      }),
+    );
   };
 
   const pick = (field: string, id: string, name: string) => {
@@ -847,13 +967,13 @@ function OwnGuest({
   };
 
   return (
-    <section className="sheet own noprint" aria-label="Your guest">
+    <section className="sheet own noprint" aria-label={t("Your guest")}>
       <details className="hotel-list" open={hotelOpen || hotelText.length > 0}>
-        <summary>Use your hotel&apos;s own list (optional)</summary>
+        <summary>{t("Use your hotel's own list (optional)")}</summary>
         <div className="fields">
           <textarea
-            aria-label="Your hotel's list, one place per line"
-            placeholder={"One restaurant or bar per line, up to 10.\nLeave empty to use the city's default list."}
+            aria-label={t("Your hotel's list, one place per line")}
+            placeholder={t("One restaurant or bar per line, up to 10.\nLeave empty to use the city's default list.")}
             value={hotelText}
             rows={6}
             onChange={(e) => setHotelText(e.target.value)}
@@ -863,35 +983,37 @@ function OwnGuest({
             type="button"
             onClick={() => setHotelText((SAMPLE_LISTS[city] ?? []).join("\n"))}
           >
-            Sample {city} list
+            {t("Sample {city} list", { city })}
           </button>
         </div>
         <small className="label">
-          Each line is matched to a restaurant or bar in Qloo within 25 km of {city}. Lines it can&apos;t match stay on the list,
-          marked “not matched”.
-          {hotelText.split("\n").filter((l) => l.trim()).length > 10 && " Only the first 10 lines are used."}
+          {t(
+            "Each line is matched to a restaurant or bar in Qloo within 25 km of {city}. Lines it can't match stay on the list, marked “not matched”.",
+            { city },
+          )}
+          {hotelText.split("\n").filter((l) => l.trim()).length > 10 && ` ${t("Only the first 10 lines are used.")}`}
         </small>
       </details>
       <div className="fields">
-        <span className="seg" role="group" aria-label="What to edit">
+        <span className="seg" role="group" aria-label={t("What to edit")}>
           {CATEGORIES.map((c) => (
             <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => {
                 if (c.id !== category) onStart();  // the old list was for the other kind of place
                 setCategory(c.id);
               }}>
-              {c.label}
+              {t(c.label)}
             </button>
           ))}
         </span>
         {category !== "dining" && (
           <small className="label" style={{ margin: 0 }}>
-            The agent below always edits restaurants &amp; bars.
+            {t("The agent below always edits restaurants & bars.")}
           </small>
         )}
       </div>
       <div className="fields">
         <label className="label" style={{ display: "grid", gap: 4, margin: 0 }}>
-          Hotel city
+          {t("Hotel city")}
           <select value={city} onChange={(e) => setCity(e.target.value)}>
             {CITIES.map((c) => (
               <option key={c}>{c}</option>
@@ -901,8 +1023,8 @@ function OwnGuest({
         {names.map((v, i) => (
           <input
             key={i}
-            aria-label={`Favourite ${i + 1}`}
-            placeholder={["e.g. Arctic Monkeys", "e.g. Succession", "e.g. Aesop"][i]}
+            aria-label={t("Favourite {n}", { n: i + 1 })}
+            placeholder={t("e.g. {x}", { x: ["Arctic Monkeys", "Succession", "Aesop"][i] })}
             value={v}
             maxLength={120}
             onChange={(e) => {
@@ -917,26 +1039,26 @@ function OwnGuest({
           />
         ))}
         <button className="btn" type="button" disabled={busy !== null} onClick={() => submit()}>
-          {busy === "form" ? "Editing…" : "Edit the list"}
+          {busy === "form" ? t("Editing…") : t("Edit the list")}
         </button>
       </div>
-      <div className="or">or describe the guest to the agent</div>
+      <div className="or">{t("or describe the guest to the agent")}</div>
       <div className="fields">
         <textarea
-          aria-label="Describe the guest"
+          aria-label={t("Describe the guest")}
           placeholder="Guest checking in tonight: loves Amy Winehouse and Dr. Martens"
           value={text}
           maxLength={400}
           onChange={(e) => setText(e.target.value)}
         />
         <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
-          {busy === "agent" ? "Agent is working…" : "Ask the agent"}
+          {busy === "agent" ? t("Agent is working…") : t("Ask the agent")}
         </button>
       </div>
       {issues.map((iss) =>
         iss.kind === "clarify" ? (
           <div className="ask" key={iss.field}>
-            {iss.question}
+            {t("{n} matches for ‘{q}’. Which one do you mean?", { n: iss.options.length, q: iss.query })}
             <div className="opts">
               {iss.options.map((o) => (
                 <button key={o.id} type="button" title={o.description} onClick={() => pick(iss.field, o.id, o.name)}>
@@ -945,19 +1067,19 @@ function OwnGuest({
                 </button>
               ))}
               <button type="button" className="none" onClick={() => noneOfThese(iss.field, iss.query)}>
-                None of these
+                {t("None of these")}
               </button>
             </div>
           </div>
         ) : (
           <div className="ask" key={iss.field}>
-            ‘{iss.query}’: {iss.message}
+            ‘{iss.query}’: {t(iss.message)}
           </div>
         ),
       )}
       {busy === "agent" && (
         <div className="live" aria-live="polite">
-          <p className="label">The agent is working. Each tool call appears as it happens:</p>
+          <p className="label">{t("The agent is working. Each tool call appears as it happens:")}</p>
           <ol>
             {steps.map((s, i) => (
               <li key={i}>
@@ -965,24 +1087,25 @@ function OwnGuest({
                 {typeof s.output === "string" ? s.output : JSON.stringify(s.output)}
               </li>
             ))}
-            {steps.length === 0 && <li className="label">Reading the description…</li>}
+            {steps.length === 0 && <li className="label">{t("Reading the description…")}</li>}
           </ol>
           {slow && (
             <p className="err">
-              This is taking longer than usual (30 s). The agent stops after about 50 s; the fields above give the same list
-              without the model.
+              {t(
+                "This is taking longer than usual (30 s). The agent stops after about 50 s; the fields above give the same list without the model.",
+              )}
             </p>
           )}
         </div>
       )}
       {err && <p className="err">{err}</p>}
-      {agent?.said && <p className="agent-said">Agent: {agent.said}</p>}
+      {agent?.said && <p className="agent-said">{t("Agent: {text}", { text: agent.said })}</p>}
       {agent?.other && agent.other.length > 0 && (
-        <p className="other">Not considered by the edit: {agent.other.join(", ")}</p>
+        <p className="other">{t("Not considered by the edit: {list}", { list: agent.other.join(", ") })}</p>
       )}
       {agent?.trace && agent.trace.length > 0 && (
         <details className="trace">
-          <summary>What the agent did ({agent.trace.length} tool calls)</summary>
+          <summary>{t("What the agent did ({n} tool calls)", { n: agent.trace.length })}</summary>
           <ol>
             {agent.trace.map((s, i) => (
               <li key={i}>

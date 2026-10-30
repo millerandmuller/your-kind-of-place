@@ -156,13 +156,14 @@ async def morning_report(
     guests: list[dict[str, Any]],
     hotel_lines: list[str] | None,
     category: str = "dining",
+    lang: str = "en",
 ) -> dict[str, Any]:
     async def one(g: dict[str, Any]) -> dict[str, Any]:
         interests = [InterestIn(x["name"], x.get("id")) for x in g["interests"][:MAX_INTERESTS]]
         other = {"not_considered": g.get("not_considered") or []}
         if not interests:
             return {"label": g["label"], **other, "result": {"status": "skipped", "message": "No favourites confirmed."}}
-        return {"label": g["label"], **other, "result": await r.run(city, interests, budget, hotel_lines, category)}
+        return {"label": g["label"], **other, "result": await r.run(city, interests, budget, hotel_lines, category, lang)}
 
     budget = budget if budget in (3, 5, 10) else 5
     rows = await asyncio.gather(*[one(g) for g in guests[:MAX_GUESTS]])

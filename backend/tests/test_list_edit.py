@@ -421,3 +421,15 @@ def test_daytime_keeps_museums_and_galleries_only():
     places = [place("m", "museum"), place("a", "art_gallery"), place("n", "natural_history_museum"),
               place("p", "park"), place("h", "hotel"), place("c", "restaurant:cafe")]
     assert [p["entity_id"] for p in rl.dining(places, "museums")] == ["m", "a", "n"]
+
+
+def test_notes_and_agent_fallback_speak_the_chosen_language():
+    p = place("x", "pub", "Soho", [{"entity_id": "A", "score": 0.9}])
+    assert rl.insert_note(p, NAMES, "de") == "Weil der Gast Amy Winehouse liebt · Soho"
+    assert rl.insert_note(p, NAMES, "fr") == "Parce que le client aime Amy Winehouse · Soho"
+    assert rl.strike_note([{"rank_from_bottom": 2, "of": 9}], "de").startswith("Zweitniedrigste")
+    assert rl.strike_note([{"rank_from_bottom": 3, "of": 9}], "fr").startswith("3e affinité")
+    r = {"status": "ok", "changed": 5, "length": 10, "lang": "de", "lines": [],
+         "agent_said": "Diese Liste ist besser für den Gast."}
+    out = guard_agent_text(r)
+    assert out["agent_said_checked"] is False and out["agent_said"].startswith("5 von 10")

@@ -23,9 +23,21 @@ from .service import CITIES, InterestIn, Redliner, UnknownCity, cached_label, lo
 
 _ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 # Words the agent may not use about a list: we measured "fits this guest", nothing else.
-_CLAIMS = re.compile(r"\b(better|best|worse|beats?|google|chatgpt|yelp|tripadvisor|michelin|rated|rating|score[sd]?|stars?|reviews?)\b", re.I)
+_CLAIMS = re.compile(
+    r"\b(better|best|worse|beats?|google|chatgpt|yelp|tripadvisor|michelin|rated|rating|score[sd]?|stars?|reviews?"
+    r"|besser|beste[nmrs]?|schlechter|bewertung(en)?|sterne[n]?|meilleur(e|s|es)?|pire|avis|étoiles?|notée?s?)\b",
+    re.I,
+)
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
-_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+          # German and French without "ein"/"un", which are also articles
+          "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10,
+          "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "sept": 7, "huit": 8, "neuf": 9, "dix": 10}
+_SUMMARY = {
+    "en": ("{} of {} entries changed.", " First insert: {} ({})."),
+    "de": ("{} von {} Einträgen geändert.", " Erster neuer Eintrag: {} ({})."),
+    "fr": ("{} entrées sur {} modifiées.", " Premier ajout : {} ({})."),
+}
 
 
 def guard_agent_text(result: dict[str, Any]) -> dict[str, Any]:
@@ -40,15 +52,16 @@ def guard_agent_text(result: dict[str, Any]) -> dict[str, Any]:
     for line in result.get("lines", []):
         allowed.update(_NUMBER.findall(line.get("note", "") + " " + (line["place"].get("name") or "")))
     numbers = set(_NUMBER.findall(said)) | {
-        str(_WORDS[w.lower()]) for w in re.findall(r"\b[A-Za-z]+\b", said) if w.lower() in _WORDS
+        str(_WORDS[w.lower()]) for w in re.findall(r"\b\w+\b", said) if w.lower() in _WORDS
     }
     if said and not _CLAIMS.search(said) and numbers <= allowed:
         result["agent_said_checked"] = True
         return result
     first = next((l for l in result.get("lines", []) if l["status"] == "insert"), None)
-    summary = f"{result.get('changed')} of {result.get('length')} entries changed."
+    head, tail = _SUMMARY.get(result.get("lang") or "en", _SUMMARY["en"])
+    summary = head.format(result.get("changed"), result.get("length"))
     if first:
-        summary += f" First insert: {first['place']['name']} ({first['note']})."
+        summary += tail.format(first["place"]["name"], first["note"])
     result["agent_said"] = summary
     result["agent_said_checked"] = False
     return result
@@ -87,6 +100,7 @@ class EditBody(BaseModel):
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
     category: Literal["dining", "nightlife", "museums"] = "dining"
+    lang: Literal["en", "de", "fr"] = "en"  # language of the margin notes
     hotel_list: list[str] | None = Field(default=None, max_length=40)  # the hotel's own list, one place per line
 
     @field_validator("hotel_list")
@@ -108,6 +122,7 @@ class AgentBody(BaseModel):
     text: str = Field(min_length=3, max_length=400)
     city: str = Field(default="London", min_length=2, max_length=40)
     budget: int = 5
+    lang: Literal["en", "de", "fr"] = "en"  # language of the agent's answer and the notes
     hotel_list: list[str] | None = Field(default=None, max_length=40)
 
     _hotel = field_validator("hotel_list")(EditBody._lines.__func__)
@@ -174,6 +189,7 @@ class ArrivalGuest(BaseModel):
 class ReportBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     budget: int = 5
+    lang: Literal["en", "de", "fr"] = "en"
     category: Literal["dining", "nightlife", "museums"] = "dining"
     guests: list[ArrivalGuest] = Field(min_length=1, max_length=6)
     hotel_list: list[str] | None = Field(default=None, max_length=40)
@@ -281,7 +297,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
                 await asyncio.wait_for(
                     r.run(
                         body.city, [InterestIn(i.name, i.id) for i in body.interests], body.budget, body.hotel_list,
-                        body.category,
+                        body.category, body.lang,
                     ),
                     timeout=45,
                 )
@@ -301,7 +317,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
         try:
             return guard_agent_text(labelled(
-                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget, body.hotel_list), timeout=52)
+                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget, body.hotel_list, lang=body.lang), timeout=52)
             ))
         except asyncio.TimeoutError as exc:
             raise HTTPException(504, "The agent took too long. Try the form instead.") from exc
@@ -323,7 +339,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
             try:
                 out = await asyncio.wait_for(
                     run_agent(state["redliner"], settings, body.text, body.city, body.budget, body.hotel_list,
-                              on_step=lambda s: queue.put_nowait({"step": s})),
+                              on_step=lambda s: queue.put_nowait({"step": s}), lang=body.lang),
                     timeout=52,
                 )
                 queue.put_nowait({"result": guard_agent_text(labelled(out))})
@@ -391,7 +407,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
             out = await asyncio.wait_for(
                 morning_report(
                     state["redliner"], body.city, body.budget,
-                    [g.model_dump() for g in body.guests], body.hotel_list, body.category,
+                    [g.model_dump() for g in body.guests], body.hotel_list, body.category, body.lang,
                 ),
                 timeout=50,
             )

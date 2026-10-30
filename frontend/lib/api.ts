@@ -111,7 +111,7 @@ export type MorningReport = {
 
 /** The agent run as a stream: `onStep` gets each tool call while it happens. */
 export async function agentStream(
-  body: { text: string; city: string; budget: number; hotel_list?: string[] },
+  body: { text: string; city: string; budget: number; hotel_list?: string[]; lang?: string },
   onStep: (s: TraceStep) => void,
 ): Promise<EditResult | NeedsInput | AgentError> {
   const res = await fetch("/api/agent/stream", {
@@ -166,10 +166,17 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   demo: () => call<{ pairs: DemoPair[] }>("/api/demo"),
   cities: () => call<{ cities: string[] }>("/api/cities"),
-  edit: (city: string, interests: InterestIn[], budget: number, hotelList?: string[], category: Category = "dining") =>
+  edit: (
+    city: string,
+    interests: InterestIn[],
+    budget: number,
+    hotelList?: string[],
+    category: Category = "dining",
+    lang: string = "en",
+  ) =>
     call<EditResult | NeedsInput>("/api/edit", {
       method: "POST",
-      body: JSON.stringify({ city, interests, budget, category, hotel_list: hotelList?.length ? hotelList : undefined }),
+      body: JSON.stringify({ city, interests, budget, category, lang, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   resolve: (name: string) =>
     call<FoundFavourite>("/api/resolve", { method: "POST", body: JSON.stringify({ name }) }),
@@ -181,10 +188,11 @@ export const api = {
     guests: { label: string; interests: InterestIn[]; not_considered?: string[] }[],
     hotelList?: string[],
     category: Category = "dining",
+    lang: string = "en",
   ) =>
     call<MorningReport>("/api/arrivals/report", {
       method: "POST",
-      body: JSON.stringify({ city, budget, category, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
+      body: JSON.stringify({ city, budget, category, lang, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   agent: (text: string, city: string, budget: number, hotelList?: string[]) =>
     call<EditResult | NeedsInput | AgentError>("/api/agent", {

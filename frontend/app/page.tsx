@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { pickLang } from "@/lib/lang";
 import ListEditor, { type StartState } from "./ListEditor";
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
@@ -19,6 +21,7 @@ export default async function Home({ searchParams }: { searchParams: Search }) {
   const tab = TABS.find((t) => t === one(q.tab));
   const lines = Number(one(q.lines));
   const start: StartState = {
+    lang: pickLang((await cookies()).get("lang")?.value),
     tab,
     ex: Math.max(0, Number(one(q.ex)) || 0),
     lines: [3, 5, 10].includes(lines) ? lines : 5,
