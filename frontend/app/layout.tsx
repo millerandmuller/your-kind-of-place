@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Newsreader } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -7,14 +7,20 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const serif = Newsreader({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
-  title: "Redline",
-  description: "The hotel's list of restaurants and bars, edited for each guest.",
+  title: "Redline: the hotel's list, edited for each guest",
+  description: "Every hotel guest gets the same list of restaurants and bars. Redline edits it for each guest, with a note on every change.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={geistSans.variable}>
+    <html lang="en" className={`${geistSans.variable} ${serif.variable}`}>
       <body>{children}</body>
     </html>
   );
