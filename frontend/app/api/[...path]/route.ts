@@ -11,8 +11,8 @@ async function forward(req: Request, path: string[]): Promise<Response> {
   const visitor = (req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (SECRET) {
-    headers["x-redline-proxy"] = SECRET;
-    headers["x-redline-client"] = visitor;
+    headers["x-proxy-secret"] = SECRET;
+    headers["x-proxy-visitor"] = visitor;
   }
   try {
     const res = await fetch(target, {

@@ -90,14 +90,27 @@ def kind_label(place: dict[str, Any]) -> str:
 
 # Not for a hotel's list in any category: Qloo files some strip clubs under plain "Night club",
 # so the genre, the genre tags and the place description are all checked.
-_ADULT = re.compile(r"strip ?club|stripper|gentlem[ae]n'?s club|lap ?danc|exotic danc|topless|adult entertainment", re.I)
+_ADULT = re.compile(
+    r"\bstrip ?(club|joint|bar|show)|\bstrippers?\b|\bstriptease|gentlem[ae]n'?s club|\blap ?danc|exotic danc"
+    r"|\bpole ?danc|\btable ?danc|\bgo ?go danc|\btopless (bar|club|danc|waitress)|\bnude (bar|club|danc|cabaret|show)"
+    r"|adult (entertainment|club|cabaret|store|shop)|\bsex (shop|club|store)|\bswingers?\b|\bfetish\b|\bpeep ?show",
+    re.I,
+)
+# Names that are adult chains whatever Qloo's text says.
+_ADULT_NAMES = re.compile(r"spearmint rhino|\bhustler\b|\bscores\b|playboy club|sapphire las vegas|déjà vu|deja vu showgirls", re.I)
+
+
+def _plain(text: str) -> str:
+    """One spelling for the patterns: straight apostrophes, spaces for hyphens and underscores."""
+    return re.sub(r"[-_‐‑–—]", " ", text.replace("’", "'").replace("‘", "'"))
 
 
 def is_adult(place: dict[str, Any]) -> bool:
     props = place.get("properties") or {}
     tags = " ".join(str(t.get("name") or "") for t in place.get("tags") or [] if isinstance(t, dict))
-    text = f"{genre_of(place)} {tags} {props.get('description') or ''} {props.get('short_description') or ''}"
-    return bool(_ADULT.search(text.replace("_", " ")))
+    name = str(place.get("name") or "")
+    text = _plain(f"{genre_of(place)} {tags} {name} {props.get('description') or ''} {props.get('short_description') or ''}")
+    return bool(_ADULT.search(text) or _ADULT_NAMES.search(_plain(name)))
 
 
 NIGHTLIFE = {"live_music_venue", "night_club", "jazz_club", "concert_hall", "comedy_club", "dance_hall",

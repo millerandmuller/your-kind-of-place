@@ -350,3 +350,20 @@ def test_category_reaches_qloo_and_comes_back(tmp_path):
         assert any("night_club" in (x or "") for x in seen)
         assert client.post("/api/edit", json={"city": "London", "interests": [{"name": "Amy Winehouse"}],
                                                "category": "shops"}).status_code == 422
+
+
+def _p(name="X", description=""):
+    p = place("x", "night_club")
+    p["name"] = name
+    p["properties"]["description"] = description
+    return p
+
+
+def test_adult_filter_catches_variants_and_spares_ordinary_bars():
+    for desc in ["Luxury strip-club with VIP booths", "Gentlemen’s Club with dancers", "Striptease show nightly",
+                 "Pole dancing bar", "Nude cabaret", "Go-go dancers on the bar"]:
+        assert rl.is_adult(_p(description=desc)), desc
+    assert rl.is_adult(_p(name="Spearmint Rhino Gentlemen's Club"))
+    assert rl.is_adult(_p(name="Hustler Club"))
+    for desc in ["Rooftop bar, topless sunbathing not allowed", "Vegas-style bar on the Strip", "Jazz lounge with a stripped-back menu"]:
+        assert not rl.is_adult(_p(description=desc)), desc

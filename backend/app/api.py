@@ -218,8 +218,8 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
     proxy_secret = os.getenv("PROXY_SECRET", "")
 
     def client_key(request: Request) -> str:
-        if proxy_secret and request.headers.get("x-redline-proxy") == proxy_secret:
-            visitor = request.headers.get("x-redline-client", "").strip()
+        if proxy_secret and request.headers.get("x-proxy-secret") == proxy_secret:
+            visitor = request.headers.get("x-proxy-visitor", "").strip()
             if visitor:
                 return f"web:{visitor[:64]}"
         parts = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
