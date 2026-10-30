@@ -165,6 +165,28 @@ class QlooClient:
 
     # --- endpoints -------------------------------------------------------------------------
 
+    async def affinity(self, place_ids: list[str], interest_ids: list[str]) -> dict[str, float]:
+        """The guest's taste affinity for exactly these places (Insights restricted to their ids).
+
+        Empty when Qloo can't answer: the redline then falls back to list order, it never guesses.
+        """
+        params = {
+            "filter.type": PLACE,
+            "filter.results.entities": ",".join(place_ids[:50]),
+            "signal.interests.entities": ",".join(interest_ids),
+            "take": min(len(place_ids), 50),
+        }
+        try:
+            data = await self.get("/v2/insights", params, shape_entities)
+        except QlooError:
+            return {}
+        out = {}
+        for e in data.get("results", {}).get("entities", []):
+            a = (e.get("query") or {}).get("affinity")
+            if e.get("entity_id") and isinstance(a, (int, float)):
+                out[e["entity_id"]] = float(a)
+        return out
+
     async def search(self, query: str, entity_type: str, limit: int = 5) -> list[dict[str, Any]]:
         """`entity_type` may be a comma-separated list of types."""
         wanted = set(entity_type.split(","))

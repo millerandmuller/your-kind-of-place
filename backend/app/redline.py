@@ -1,8 +1,9 @@
 """The redline: the city's default list, edited for one guest. Deterministic, no model involved.
 
 Rules (also shown on the "How this works" page):
-- Struck: default entries that are not among the guest's top taste matches, lowest on the list first,
-  at most `budget` of them.
+- Struck: list entries that are not among the guest's top taste matches, the ones with the lowest
+  Qloo taste affinity for this guest first (ties and missing scores: lowest on the list first), at
+  most `budget` of them.
 - Inserted: the guest's best taste matches that are not on the list yet, one per struck entry, in
   Qloo's rank order. Each insert takes the place of a struck entry (top struck slot gets the best match).
 - Kept: everything else, unmarked.
@@ -157,18 +158,30 @@ class Line:
         return out
 
 
+def _affinity_rank(place: dict[str, Any], default: list[dict[str, Any]], affinity: dict[str, float]):
+    """Where this entry sits among the list's entries by the guest's taste affinity (1 = lowest)."""
+    scored = sorted((v, k) for k, v in affinity.items() if k in {p["entity_id"] for p in default})
+    for rank, (_, pid) in enumerate(scored, start=1):
+        if pid == place["entity_id"]:
+            return [{"rank_from_bottom": rank, "of": len(scored)}]
+    return None
+
+
 def redline(
     default: list[dict[str, Any]],
     taste: list[dict[str, Any]],
     names: dict[str, str],
     budget: int = 5,
     match_ids: set[str] | None = None,
+    affinity: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Edit `default` for a guest. Pure function.
 
     `taste` is the guest's ranked dining matches (inserts come from here); `match_ids` is the full
-    top-50 Qloo answer before the dining filter (a default entry in there is never struck).
+    top-50 Qloo answer before the dining filter (a default entry in there is never struck);
+    `affinity` is Qloo's taste affinity of this guest for each place on the list.
     """
+    affinity = affinity or {}
     taste_set = match_ids if match_ids is not None else {p["entity_id"] for p in taste}
     default_ids = {p["entity_id"] for p in default}
 
@@ -176,7 +189,8 @@ def redline(
     strike_pool = [
         i for i, p in enumerate(default) if p["entity_id"] not in taste_set and not p["entity_id"].startswith(UNMATCHED)
     ]
-    strike_pool.reverse()  # lowest on the list first
+    # least affinity for this guest first; without a score, lowest on the list first
+    strike_pool.sort(key=lambda i: (affinity.get(default[i]["entity_id"], -1.0), -i))
     insert_pool = [p for p in taste if p["entity_id"] not in default_ids]
     n = max(0, min(budget, len(strike_pool), len(insert_pool)))
     struck = sorted(strike_pool[:n])  # back into list order: the top struck slot gets the best match
@@ -186,7 +200,7 @@ def redline(
     final: list[dict[str, Any]] = []
     for i, p in enumerate(default):
         if i in inserts:
-            lines.append(Line("strike", p, STRIKE_NOTE))
+            lines.append(Line("strike", p, STRIKE_NOTE, why=_affinity_rank(p, default, affinity)))
             new = inserts[i]
             lines.append(
                 Line("insert", new, insert_note(new, names), drivers(new, names), replaces=p["entity_id"])

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ MAX_KM = 25
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"
 MAX_INTERESTS = 3
 MAX_LIST = 10
+IN_HOUSE = re.compile(r"^\s*(our|my|the hotel'?s?|hotel|in[- ]house|house)\b", re.I)
 # A saved answer younger than this is just the same visit; older ones are labelled "cached result".
 CACHED_LABEL_AFTER_S = 600
 
@@ -114,11 +116,16 @@ class Redliner:
             want = norm(line)
             near = [r for r in in_town(city, results) if rl.is_dining(r, allow_chains=True)]
             named = [(norm(r.get("name", "")), r) for r in near]
-            match = (
-                next((r for n, r in named if n == want), None)
-                or next((r for n, r in named if want and want in n), None)
-                or next((r for n, r in sorted(named, key=lambda x: -len(x[0])) if len(n) >= 4 and n in want), None)
-            )
+            match = None
+            if want and not IN_HOUSE.match(line):  # "Our rooftop bar" is the hotel's own, not a place to look up
+                match = (
+                    next((r for n, r in named if n == want), None)
+                    or next((r for n, r in named if f" {want} " in f" {n} "), None)
+                    or next(
+                        (r for n, r in sorted(named, key=lambda x: -len(x[0])) if len(n) >= 4 and f" {n} " in f" {want} "),
+                        None,
+                    )
+                )
             if match and match["entity_id"] in seen:
                 skipped.append(line)
             elif match:
@@ -165,7 +172,9 @@ class Redliner:
             default, (taste, match_ids) = await asyncio.gather(
                 self.default_list(city), self.taste_places(city, [g.id for g in guests])
             )
-        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids)
+        listed = [p["entity_id"] for p in default if not p["entity_id"].startswith(rl.UNMATCHED)]
+        affinity = await self.qloo.affinity(listed, [g.id for g in guests]) if listed else {}
+        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids, affinity=affinity)
         return {
             "match_count": len(match_ids),
             "city": city,

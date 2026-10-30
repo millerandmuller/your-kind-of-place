@@ -32,7 +32,7 @@ export default function How() {
       <h2>1b. Or the hotel&apos;s own list</h2>
       <p>
         Under “Your guest (and list)” a concierge can paste the hotel&apos;s own list, up to 10 lines. Each line is looked up with{" "}
-        <code>GET /search?types=urn:entity:place</code> and matched to a restaurant or bar within 25 km (same dining filter as
+        <code>GET /search?types=urn:entity:place</code> and matched to a restaurant or bar within 25 km, on whole words, never for lines like “Our rooftop bar” (same dining filter as
         above, except that chains the hotel lists itself are kept): an exact name first, then a place whose name contains the
         line (“Dishoom” → “Dishoom King&apos;s Cross”), then a place whose name the line contains (“Kiln Soho” → “Kiln”). The
         screen says “listed as ‘Dishoom’”. Lines that don&apos;t match stay on the list as typed, marked “not matched”, and are
@@ -56,8 +56,10 @@ export default function How() {
       <h2>4. The redline (deterministic)</h2>
       <ul>
         <li>
-          <strong>Struck:</strong> default entries that are not in the guest&apos;s top 50, lowest on the list first, at most as
-          many as the swap budget (3, 5 or 10).
+          <strong>Struck:</strong> list entries that are not in the guest&apos;s top 50, the ones this guest&apos;s taste
+          likes least first (Qloo&apos;s affinity for exactly the places on the list, via{" "}
+          <code>filter.results.entities</code>; without a score, lowest on the list first), at most as many as the swap budget
+          (3, 5 or 10).
         </li>
         <li>
           <strong>Inserted:</strong> the guest&apos;s best matches that aren&apos;t on the list yet, one per struck entry, in

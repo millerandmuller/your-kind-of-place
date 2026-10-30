@@ -22,6 +22,8 @@ import {
   type TraceStep,
 } from "@/lib/api";
 
+type AffinityRank = { rank_from_bottom: number; of: number };
+
 type Tab = "default" | "g1" | "g2" | "both" | "own";
 
 function meta(p: Place): string {
@@ -43,6 +45,7 @@ export default function Redline() {
   const [results, setResults] = useState<Partial<Record<Tab, RedlineResult>>>({});
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [hotelOpen, setHotelOpen] = useState(false);
   const [rejected, setRejected] = useState<Partial<Record<Tab, Set<string>>>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [animate, setAnimate] = useState(false);
@@ -203,6 +206,7 @@ export default function Redline() {
       {tab === "own" && (
         <OwnGuest
           budget={budget}
+          hotelOpen={hotelOpen}
           onStart={() => setResults((x) => ({ ...x, own: undefined }))}
           onResult={(r) => {
             setAnimate(true);
@@ -274,6 +278,18 @@ export default function Redline() {
                   ? `Guest 1 and Guest 2 share ${shareCount} of ${g1!.length}`
                   : ""}
               </span>
+              {tab === "default" && (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setHotelOpen(true);
+                    choose("own");
+                  }}
+                >
+                  Use your hotel&apos;s own list →
+                </button>
+              )}
               {tab !== "default" && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <small className="label" style={{ margin: 0 }}>Accept / reject stays on this screen only.</small>
@@ -421,8 +437,15 @@ function RedlineList({
   );
 }
 
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 function Detail({ line, r }: { line: Line; r: RedlineResult }) {
   const p = line.place;
+  const rank = line.status === "strike" ? (line.why as unknown as AffinityRank[] | undefined)?.[0] : undefined;
   if (line.status === "strike") {
     return (
       <div className="detail">
@@ -430,6 +453,13 @@ function Detail({ line, r }: { line: Line; r: RedlineResult }) {
           Qloo ranked {r.match_count} places in {r.city} for a guest who loves {guestName(r.guest)}. {p.name} is not
           among them, so it made room for a closer match.
         </p>
+        {rank && (
+          <p>
+            Of the {rank.of} places on this list, it has the{" "}
+            {rank.rank_from_bottom === 1 ? "lowest" : `${ordinal(rank.rank_from_bottom)} lowest`} taste affinity for this
+            guest in Qloo.
+          </p>
+        )}
         <p className="src">It stays on the default list for other guests. Reject the change to keep it here.</p>
       </div>
     );
@@ -493,10 +523,12 @@ function SendOut({ r, rejected }: { r: RedlineResult; rejected: Set<string> }) {
 
 function OwnGuest({
   budget,
+  hotelOpen,
   onStart,
   onResult,
 }: {
   budget: number;
+  hotelOpen: boolean;
   onStart: () => void;
   onResult: (r: RedlineResult) => void;
 }) {
@@ -601,7 +633,7 @@ function OwnGuest({
 
   return (
     <section className="sheet own noprint" aria-label="Your guest">
-      <details className="hotel-list" open={hotelText.length > 0}>
+      <details className="hotel-list" open={hotelOpen || hotelText.length > 0}>
         <summary>Use your hotel&apos;s own list (optional)</summary>
         <div className="fields">
           <textarea

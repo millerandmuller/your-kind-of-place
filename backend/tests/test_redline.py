@@ -252,3 +252,27 @@ def test_hotel_list_matches_shorter_qloo_names_skips_duplicates_and_non_dining(t
         assert body["default"][0]["typed"] == "Kiln Soho"
         assert body["default"][1]["in_qloo"] is False  # a museum is not a restaurant or bar
         assert body["skipped"] == ["Kiln"]
+
+
+def test_strikes_follow_the_guests_affinity_not_the_list_position():
+    default = [place(str(i)) for i in range(6)]
+    taste = [place(f"x{i}") for i in range(6)]
+    aff = {"0": 0.5, "1": 0.9, "2": 0.1, "3": 0.8, "4": 0.7, "5": 0.95}
+    out = rl.redline(default, taste, NAMES, budget=2, match_ids=set(), affinity=aff)
+    struck = [l["place"]["id"] for l in out["lines"] if l["status"] == "strike"]
+    assert struck == ["0", "2"]  # the two lowest affinities, shown in list order
+    assert out["lines"][0]["why"] == [{"rank_from_bottom": 2, "of": 6}]
+
+
+def test_in_house_lines_and_partial_words_never_match(tmp_path):
+    def q(req):
+        if req.url.path == "/search" and "place" in req.url.params.get("types", ""):
+            return httpx.Response(200, json={"results": [{**place("mh", "restaurant:bar"), "name": "Magic Hour Rooftop Bar"}]})
+        return fake_qloo(req)
+
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(q))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+                                                 "hotel_list": ["Our rooftop bar", "our rooftop bar & grill", "Hour Rooftop"]}).json()
+        assert [p["in_qloo"] for p in body["default"]] == [False, False, True]
