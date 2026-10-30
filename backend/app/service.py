@@ -14,6 +14,8 @@ from .resolve import Clarify, Entity, NotFound, resolve_interest
 CITIES = ("London", "San Francisco", "New York", "Austin", "Berlin")
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"
 MAX_INTERESTS = 3
+# A saved answer younger than this is just the same visit; older ones are labelled "cached result".
+CACHED_LABEL_AFTER_S = 600
 
 
 @dataclass
@@ -40,6 +42,19 @@ def load_demo() -> dict[str, Any]:
         return {"pairs": []}
 
 
+def cached_label(result: dict[str, Any]) -> bool:
+    """'cached result' = live Qloo failed and a saved answer stood in, or nothing in this version
+    was fetched live and the saved answers are older than this visit. A new guest whose taste query
+    ran live is never labelled, even if the city's default list came from the cache."""
+    if result.get("fallback"):
+        return True
+    return (
+        bool(result.get("cached"))
+        and result.get("live_calls", 0) == 0
+        and result.get("cache_age_seconds", 0) >= CACHED_LABEL_AFTER_S
+    )
+
+
 class Redliner:
     def __init__(self, qloo: QlooClient, length: int = 10):
         self.qloo = qloo
@@ -59,7 +74,10 @@ class Redliner:
         found = await asyncio.gather(
             *[resolve_interest(self.qloo, i, x.name, x.id) for i, x in enumerate(interests[:MAX_INTERESTS])]
         )
-        entities = [f for f in found if isinstance(f, Entity)]
+        entities: list[Entity] = []
+        for f in found:  # the same favourite typed twice counts once
+            if isinstance(f, Entity) and all(e.id != f.id for e in entities):
+                entities.append(f)
         issues: list[dict[str, Any]] = []
         for f in found:
             if isinstance(f, Clarify):
@@ -77,6 +95,7 @@ class Redliner:
         )
         result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids)
         return {
+            "match_count": len(match_ids),
             "city": city,
             "guest": [g.public() for g in guests],
             "budget": budget,
@@ -102,4 +121,5 @@ class Redliner:
             "cached": trace.cached,
             "cache_age_seconds": round(trace.cache_age_seconds),
             "live_calls": trace.live_calls,
+            "fallback": bool(trace.notes),
         }

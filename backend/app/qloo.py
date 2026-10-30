@@ -104,7 +104,7 @@ class QlooClient:
         self._client = httpx.AsyncClient(
             base_url=settings.qloo_base_url,
             headers={"X-Api-Key": settings.qloo_api_key, "User-Agent": "redline/1.0"},
-            timeout=httpx.Timeout(8.0, connect=4.0),
+            timeout=httpx.Timeout(20.0, connect=4.0),  # New York place queries take ~9-10 s
             transport=transport,
         )
         self._gate = asyncio.Semaphore(4)
@@ -114,11 +114,13 @@ class QlooClient:
 
     async def _live(self, path: str, params: dict[str, Any]) -> Any:
         last: Exception | None = None
-        attempts = 2  # worst case per call ≈ 2 × 8 s; a redline needs two calls, well under 60 s
+        attempts = 2  # retry only fast failures (429/5xx); a timeout is not retried, so a call stays ≤ ~20 s
         for attempt in range(attempts):
             try:
                 async with self._gate:
                     resp = await self._client.get(path, params=params)
+            except httpx.TimeoutException as exc:
+                raise QlooError(f"Qloo timed out: {exc.__class__.__name__}") from exc
             except httpx.HTTPError as exc:
                 last = QlooError(f"Qloo unreachable: {exc.__class__.__name__}")
             else:

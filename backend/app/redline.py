@@ -25,9 +25,13 @@ NOT_A_RECOMMENDATION = {
     "restaurant:chicken_wings",
     "restaurant:hot_dog",
     "restaurant:chinese_takeaway",
+    "restaurant:hamburger",
+    "restaurant:ice_cream_shop",
+    "restaurant:donut_shop",
+    "restaurant:bubble_tea_store",
 }
 
-STRIKE_NOTE = "Not among this guest's top 50 taste matches"
+STRIKE_NOTE = "Not among this guest's top 50 taste matches"  # Qloo's page size; see match_count
 BUDGETS = (3, 5, 10)
 
 
@@ -40,6 +44,9 @@ def genre_of(place: dict[str, Any]) -> str:
 def is_dining(place: dict[str, Any]) -> bool:
     genre = genre_of(place)
     if not genre or genre in NOT_A_RECOMMENDATION:
+        return False
+    address = str((place.get("properties") or {}).get("address") or "")
+    if "airport" in address.lower():  # lounges and terminal outlets aren't somewhere to send a guest
         return False
     return genre == "restaurant" or genre.startswith("restaurant:") or genre in DINING_EXTRA
 
