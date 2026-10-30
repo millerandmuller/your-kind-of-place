@@ -138,6 +138,7 @@ def public_place(place: dict[str, Any]) -> dict[str, Any]:
         "lon": loc.get("lon"),
         "typed": place.get("typed"),  # what the hotel's list said, when it was matched to a Qloo place
         "in_qloo": not str(place.get("entity_id", "")).startswith(UNMATCHED),
+        "in_house": bool(place.get("in_house")),
     }
 
 
@@ -156,6 +157,19 @@ class Line:
         if self.replaces:
             out["replaces"] = self.replaces
         return out
+
+
+def _ordinal(n: int) -> str:
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def strike_note(rank: list[dict[str, Any]] | None) -> str:
+    """The reason in the margin: the place's taste-affinity rank on this list, when Qloo scored it."""
+    if not rank:
+        return STRIKE_NOTE
+    r = rank[0]["rank_from_bottom"]
+    which = "Lowest" if r == 1 else f"{_ordinal(r)} lowest"
+    return f"{which} taste affinity on this list for this guest"
 
 
 def _affinity_rank(place: dict[str, Any], default: list[dict[str, Any]], affinity: dict[str, float]):
@@ -204,7 +218,8 @@ def redline(
     final: list[dict[str, Any]] = []
     for i, p in enumerate(default):
         if i in inserts:
-            lines.append(Line("strike", p, STRIKE_NOTE, why=_affinity_rank(p, default, affinity)))
+            rank = _affinity_rank(p, default, affinity)
+            lines.append(Line("strike", p, strike_note(rank), why=rank))
             new = inserts[i]
             lines.append(
                 Line("insert", new, insert_note(new, names), drivers(new, names), replaces=p["entity_id"])

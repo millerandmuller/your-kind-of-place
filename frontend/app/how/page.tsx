@@ -73,8 +73,9 @@ export default function How() {
         </li>
         <li>
           <strong>Notes:</strong> for an insert, the favourite with the highest explainability score for that place (both
-          names when they are within 0.1), plus Qloo&apos;s neighbourhood and place type. For a strike: “Not among this
-          guest&apos;s top 50 taste matches.”
+          names when they are within 0.1), plus Qloo&apos;s neighbourhood and place type. For a strike: its rank by this
+          guest&apos;s taste affinity among the list&apos;s places (“Lowest taste affinity on this list for this guest”), or
+          “Not among this guest&apos;s top 50 taste matches” when Qloo gave it no score.
         </li>
       </ul>
       <p>Same guest, same city, same budget: same list.</p>

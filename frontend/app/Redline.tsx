@@ -28,6 +28,7 @@ type AffinityRank = { rank_from_bottom: number; of: number };
 type Tab = "default" | "g1" | "g2" | "both" | "own" | "arrivals";
 
 function meta(p: Place): string {
+  if (p.in_house) return "Hotel's own · kept as is";
   if (p.in_qloo === false) return "Not matched to a restaurant or bar in Qloo · kept as is";
   const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
   if (p.typed) return `${base} · listed as “${p.typed}”`;

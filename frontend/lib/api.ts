@@ -10,6 +10,7 @@ export type Place = {
   lon: number | null;
   typed?: string | null;
   in_qloo?: boolean;
+  in_house?: boolean;
 };
 
 export type Driver = { id: string; name: string; score: number };

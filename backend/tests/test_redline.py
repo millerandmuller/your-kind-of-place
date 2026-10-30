@@ -262,6 +262,9 @@ def test_strikes_follow_the_guests_affinity_not_the_list_position():
     struck = [l["place"]["id"] for l in out["lines"] if l["status"] == "strike"]
     assert struck == ["0", "2"]  # the two lowest affinities, shown in list order
     assert out["lines"][0]["why"] == [{"rank_from_bottom": 2, "of": 6}]
+    assert out["lines"][0]["note"] == "2nd lowest taste affinity on this list for this guest"
+    by_id = {l["place"]["id"]: l for l in out["lines"] if l["status"] == "strike"}
+    assert by_id["2"]["note"] == "Lowest taste affinity on this list for this guest"
 
 
 def test_in_house_lines_and_partial_words_never_match(tmp_path):
@@ -276,6 +279,7 @@ def test_in_house_lines_and_partial_words_never_match(tmp_path):
         body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
                                                  "hotel_list": ["Our rooftop bar", "our rooftop bar & grill", "Hour Rooftop"]}).json()
         assert [p["in_qloo"] for p in body["default"]] == [False, False, True]
+        assert [p["in_house"] for p in body["default"]] == [True, True, False]
 
 
 def test_favourites_must_be_written_in_the_note():

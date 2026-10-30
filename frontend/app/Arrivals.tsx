@@ -312,7 +312,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                           {l.status === "insert"
                             ? l.note
                             : l.status === "strike"
-                              ? "Not among this guest's top 50 taste matches"
+                              ? l.note
                               : [l.place.kind, l.place.neighborhood].filter(Boolean).join(" · ")}
                         </div>
                       </div>

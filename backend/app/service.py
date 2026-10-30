@@ -132,7 +132,10 @@ class Redliner:
                 seen.add(match["entity_id"])
                 out.append({**match, "typed": line if norm(match["name"]) != want else None})
             else:
-                out.append({"entity_id": f"{rl.UNMATCHED}{i}", "name": line, "properties": {}, "typed": line})
+                out.append({
+                    "entity_id": f"{rl.UNMATCHED}{i}", "name": line, "properties": {}, "typed": line,
+                    "in_house": bool(IN_HOUSE.match(line)),
+                })
         return out, skipped
 
     async def taste_places(self, city: str, ids: list[str]) -> tuple[list[dict[str, Any]], set[str]]:
