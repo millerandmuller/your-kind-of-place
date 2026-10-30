@@ -323,3 +323,30 @@ def test_resolve_endpoint_needs_no_model(tmp_path):
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
         body = client.post("/api/resolve", json={"name": "Amy Winehouse"}).json()
         assert body["status"] == "ok" and body["entity"]["id"] == "A"
+
+
+def test_nightlife_keeps_venues_clubs_and_bars_only():
+    strip = place("s", "night_club")
+    strip["properties"]["description"] = "Massive luxury strip club on City Road with multiple stages"
+    places = [place("v", "live_music_venue"), place("c", "night_club"), place("h", "hotel"), place("b", "restaurant:bar"),
+              place("f", "restaurant:fish_and_chips"), place("r", "record_store"), strip, place("a", "adult_entertainment_club")]
+    assert [p["entity_id"] for p in rl.dining(places, "nightlife")] == ["v", "c", "b"]
+
+
+def test_category_reaches_qloo_and_comes_back(tmp_path):
+    seen = []
+
+    def q(req):
+        if req.url.path == "/v2/insights":
+            seen.append(req.url.params.get("filter.tags"))
+        return fake_qloo(req)
+
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(q))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/edit", json={"city": "London", "interests": [{"name": "Amy Winehouse"}],
+                                              "category": "nightlife"}).json()
+        assert body["category"] == "nightlife"
+        assert any("night_club" in (x or "") for x in seen)
+        assert client.post("/api/edit", json={"city": "London", "interests": [{"name": "Amy Winehouse"}],
+                                               "category": "shops"}).status_code == 422

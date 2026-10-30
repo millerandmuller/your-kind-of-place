@@ -91,13 +91,15 @@ class Redliner:
         self.qloo = qloo
         self.length = length
 
-    async def default_list(self, city: str) -> list[dict[str, Any]]:
+    async def default_list(self, city: str, category: str = "dining") -> list[dict[str, Any]]:
         """The city's top dining places with no taste signal: the stand-in for the hotel's list."""
         city = check_city(city)
-        places = await self.qloo.places(CITY_QUERY.get(city, city), take=50)
-        return in_town(city, rl.dining(places))[: self.length]
+        places = await self.qloo.places(CITY_QUERY.get(city, city), take=50, category=category)
+        return in_town(city, rl.dining(places, category))[: self.length]
 
-    async def hotel_list(self, city: str, lines: list[str]) -> tuple[list[dict[str, Any]], list[str]]:
+    async def hotel_list(
+        self, city: str, lines: list[str], category: str = "dining"
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         """Match each line of the hotel's own list to a Qloo restaurant or bar in town, in order.
 
         Only sit-down food and drink within 25 km can match. An exact name wins; then a place whose
@@ -114,7 +116,7 @@ class Redliner:
         seen: set[str] = set()
         for i, (line, results) in enumerate(zip(clean, found)):
             want = norm(line)
-            near = [r for r in in_town(city, results) if rl.is_dining(r, allow_chains=True)]
+            near = [r for r in in_town(city, results) if rl.KEEP[category](r, allow_chains=True)]
             named = [(norm(r.get("name", "")), r) for r in near]
             match = None
             if want and not IN_HOUSE.match(line):  # "Our rooftop bar" is the hotel's own, not a place to look up
@@ -138,11 +140,13 @@ class Redliner:
                 })
         return out, skipped
 
-    async def taste_places(self, city: str, ids: list[str]) -> tuple[list[dict[str, Any]], set[str]]:
+    async def taste_places(
+        self, city: str, ids: list[str], category: str = "dining"
+    ) -> tuple[list[dict[str, Any]], set[str]]:
         """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50)."""
         city = check_city(city)
-        raw = await self.qloo.places(CITY_QUERY.get(city, city), ids, take=50, explain=True)
-        return in_town(city, rl.dining(raw)), {p["entity_id"] for p in raw if p.get("entity_id")}
+        raw = await self.qloo.places(CITY_QUERY.get(city, city), ids, take=50, explain=True, category=category)
+        return in_town(city, rl.dining(raw, category)), {p["entity_id"] for p in raw if p.get("entity_id")}
 
     async def resolve(self, interests: list[InterestIn]) -> tuple[list[Entity], list[dict[str, Any]]]:
         found = await asyncio.gather(
@@ -162,18 +166,24 @@ class Redliner:
         return entities, issues
 
     async def edit(
-        self, city: str, guests: list[Entity], budget: int, hotel_lines: list[str] | None = None
+        self,
+        city: str,
+        guests: list[Entity],
+        budget: int,
+        hotel_lines: list[str] | None = None,
+        category: str = "dining",
     ) -> dict[str, Any]:
         city = check_city(city)
+        category = category if category in rl.KEEP else "dining"
         names = {g.id: g.name for g in guests}
         skipped: list[str] = []
         if hotel_lines:
             (default, skipped), (taste, match_ids) = await asyncio.gather(
-                self.hotel_list(city, hotel_lines), self.taste_places(city, [g.id for g in guests])
+                self.hotel_list(city, hotel_lines, category), self.taste_places(city, [g.id for g in guests], category)
             )
         else:
             default, (taste, match_ids) = await asyncio.gather(
-                self.default_list(city), self.taste_places(city, [g.id for g in guests])
+                self.default_list(city, category), self.taste_places(city, [g.id for g in guests], category)
             )
         listed = [p["entity_id"] for p in default if not p["entity_id"].startswith(rl.UNMATCHED)]
         affinity = await self.qloo.affinity(listed, [g.id for g in guests]) if listed else {}
@@ -184,13 +194,19 @@ class Redliner:
             "guest": [g.public() for g in guests],
             "budget": budget,
             "source": "hotel" if hotel_lines else "default",
+            "category": category,
             "skipped": skipped,
             "default": [rl.public_place(p) for p in default],
             **result,
         }
 
     async def run(
-        self, city: str, interests: list[InterestIn], budget: int = 5, hotel_lines: list[str] | None = None
+        self,
+        city: str,
+        interests: list[InterestIn],
+        budget: int = 5,
+        hotel_lines: list[str] | None = None,
+        category: str = "dining",
     ) -> dict[str, Any]:
         """Resolve (ask when unclear) → default list → taste matches → edited list."""
         city = check_city(city)
@@ -202,7 +218,7 @@ class Redliner:
             return {"status": "needs_input", "issues": issues, "resolved": [e.public() for e in entities]}
         if not entities:
             return {"status": "needs_input", "issues": [], "resolved": []}
-        out = await self.edit(city, entities, budget, hotel_lines)
+        out = await self.edit(city, entities, budget, hotel_lines, category)
         return {
             "status": "ok",
             **out,

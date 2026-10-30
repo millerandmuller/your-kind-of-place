@@ -6,7 +6,10 @@ import Arrivals from "./Arrivals";
 import {
   api,
   BUDGETS,
+  CATEGORIES,
   CITIES,
+  categoryLabel,
+  type Category,
   DEFAULT_LABEL,
   HOTEL_LABEL,
   SAMPLE_LISTS,
@@ -245,7 +248,10 @@ export default function ListEditor() {
         <section className={`sheet${animate ? " animate" : ""}`} key={`${tab}-${current?.city}-${current?.budget}-${guestName(current?.guest ?? [])}`}>
           <div className="sheet-head">
             <div>
-              <h2>Restaurants &amp; bars{current ? ` in ${current.city}` : ""}</h2>
+              <h2>
+                {categoryLabel(current?.category)}
+                {current ? ` in ${current.city}` : ""}
+              </h2>
               <span className="for">
                 {tab === "default" || !current
                   ? "For every guest"
@@ -513,7 +519,7 @@ function sendText(r: EditResult, rejected: Set<string>): string {
     const where = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
     return `${i + 1}. ${p.name}${where ? `  (${where})` : ""}${note ? `\n   ${note}` : ""}`;
   });
-  return `Picked for you: restaurants & bars in ${r.city}\n\n${rows.join("\n")}\n\nPicks marked with a note were chosen for your taste. ${LABEL}`;
+  return `Picked for you: ${categoryLabel(r.category).toLowerCase()} in ${r.city}\n\n${rows.join("\n")}\n\nPicks marked with a note were chosen for your taste. ${LABEL}`;
 }
 
 function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
@@ -557,6 +563,7 @@ function OwnGuest({
   onResult: (r: EditResult) => void;
 }) {
   const [city, setCity] = useState("London");
+  const [category, setCategory] = useState<Category>("dining");
   const [names, setNames] = useState(["", "", ""]);
   const [ids, setIds] = useState<(string | undefined)[]>([undefined, undefined, undefined]);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -590,7 +597,7 @@ function OwnGuest({
       setAgent(null);
       onStart();
       try {
-        const r = await api.edit(city, interests, budget, hotelLines());
+        const r = await api.edit(city, interests, budget, hotelLines(), category);
         if (r.status === "ok") onResult(r);
         else setIssues((r as NeedsInput).issues);
       } catch (e) {
@@ -599,7 +606,7 @@ function OwnGuest({
         setBusy(null);
       }
     },
-    [names, ids, city, budget, hotelLines, onStart, onResult],
+    [names, ids, city, budget, hotelLines, category, onStart, onResult],
   );
 
   const runAgent = async () => {
@@ -680,6 +687,20 @@ function OwnGuest({
           {hotelText.split("\n").filter((l) => l.trim()).length > 10 && " Only the first 10 lines are used."}
         </small>
       </details>
+      <div className="fields">
+        <span className="seg" role="group" aria-label="What to edit">
+          {CATEGORIES.map((c) => (
+            <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
+              {c.label}
+            </button>
+          ))}
+        </span>
+        {category === "nightlife" && (
+          <small className="label" style={{ margin: 0 }}>
+            The agent below always edits restaurants &amp; bars.
+          </small>
+        )}
+      </div>
       <div className="fields">
         <label className="label" style={{ display: "grid", gap: 4, margin: 0 }}>
           Hotel city

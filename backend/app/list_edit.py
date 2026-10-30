@@ -64,7 +64,7 @@ def genre_of(place: dict[str, Any]) -> str:
 def is_dining(place: dict[str, Any], allow_chains: bool = False) -> bool:
     """Sit-down food or drink. A hotel's own list may name a chain on purpose (allow_chains)."""
     genre = genre_of(place)
-    if not genre or genre in NOT_A_RECOMMENDATION:
+    if not genre or genre in NOT_A_RECOMMENDATION or is_adult(place):
         return False
     if not allow_chains and is_chain(place):
         return False
@@ -88,12 +88,47 @@ def kind_label(place: dict[str, Any]) -> str:
     return label[:1].upper() + label[1:]
 
 
-def dining(places: list[dict[str, Any]]) -> list[dict[str, Any]]:
+# Not for a hotel's list in any category: Qloo files some strip clubs under plain "Night club",
+# so the genre, the genre tags and the place description are all checked.
+_ADULT = re.compile(r"strip ?club|stripper|gentlem[ae]n'?s club|lap ?danc|exotic danc|topless|adult entertainment", re.I)
+
+
+def is_adult(place: dict[str, Any]) -> bool:
+    props = place.get("properties") or {}
+    tags = " ".join(str(t.get("name") or "") for t in place.get("tags") or [] if isinstance(t, dict))
+    text = f"{genre_of(place)} {tags} {props.get('description') or ''} {props.get('short_description') or ''}"
+    return bool(_ADULT.search(text.replace("_", " ")))
+
+
+NIGHTLIFE = {"live_music_venue", "night_club", "jazz_club", "concert_hall", "comedy_club", "dance_hall",
+             "disco_club", "karaoke_bar", "event_venue", "performing_arts_theater", "pub", "brewery"}
+
+
+def is_nightlife(place: dict[str, Any], allow_chains: bool = False) -> bool:
+    """Venues, clubs, bars and pubs Qloo files under live music and nightlife; no restaurants or shops."""
+    genre = genre_of(place)
+    if not genre or is_adult(place):
+        return False
+    bar = genre.startswith("restaurant:") and ("bar" in genre or "pub" in genre)
+    if not (genre in NIGHTLIFE or bar):
+        return False
+    if not allow_chains and is_chain(place):
+        return False
+    props = place.get("properties") or {}
+    return not _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}")
+
+
+KEEP = {"dining": is_dining, "nightlife": is_nightlife}
+
+
+def dining(places: list[dict[str, Any]], category: str = "dining") -> list[dict[str, Any]]:
+    """The category's places, deduplicated, in Qloo's order."""
+    keep = KEEP[category]
     seen: set[str] = set()
     out = []
     for p in places:
         pid = p.get("entity_id")
-        if pid and pid not in seen and is_dining(p):
+        if pid and pid not in seen and keep(p):
             seen.add(pid)
             out.append(p)
     return out

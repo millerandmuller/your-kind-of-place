@@ -7,7 +7,7 @@ import re
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -85,6 +85,7 @@ class EditBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
+    category: Literal["dining", "nightlife"] = "dining"
     hotel_list: list[str] | None = Field(default=None, max_length=40)  # the hotel's own list, one place per line
 
     @field_validator("hotel_list")
@@ -166,6 +167,7 @@ class ArrivalGuest(BaseModel):
 class ReportBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     budget: int = 5
+    category: Literal["dining", "nightlife"] = "dining"
     guests: list[ArrivalGuest] = Field(min_length=1, max_length=6)
     hotel_list: list[str] | None = Field(default=None, max_length=40)
 
@@ -270,7 +272,10 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         try:
             return labelled(
                 await asyncio.wait_for(
-                    r.run(body.city, [InterestIn(i.name, i.id) for i in body.interests], body.budget, body.hotel_list),
+                    r.run(
+                        body.city, [InterestIn(i.name, i.id) for i in body.interests], body.budget, body.hotel_list,
+                        body.category,
+                    ),
                     timeout=45,
                 )
             )
@@ -341,7 +346,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
             out = await asyncio.wait_for(
                 morning_report(
                     state["redliner"], body.city, body.budget,
-                    [g.model_dump() for g in body.guests], body.hotel_list,
+                    [g.model_dump() for g in body.guests], body.hotel_list, body.category,
                 ),
                 timeout=50,
             )

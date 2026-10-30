@@ -38,6 +38,7 @@ export type EditResult = {
   guest: Interest[];
   budget: number;
   source?: "default" | "hotel";
+  category?: Category;
   skipped?: string[];
   default: Place[];
   lines: Line[];
@@ -84,6 +85,7 @@ export type ArrivalRead = {
 export type MorningReport = {
   status: "ok";
   city: string;
+  category?: Category;
   budget: number;
   guests: { label: string; result: EditResult | NeedsInput | { status: "skipped"; message: string } }[];
 };
@@ -107,19 +109,25 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   demo: () => call<{ pairs: DemoPair[] }>("/api/demo"),
   cities: () => call<{ cities: string[] }>("/api/cities"),
-  edit: (city: string, interests: InterestIn[], budget: number, hotelList?: string[]) =>
+  edit: (city: string, interests: InterestIn[], budget: number, hotelList?: string[], category: Category = "dining") =>
     call<EditResult | NeedsInput>("/api/edit", {
       method: "POST",
-      body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
+      body: JSON.stringify({ city, interests, budget, category, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   resolve: (name: string) =>
     call<FoundFavourite>("/api/resolve", { method: "POST", body: JSON.stringify({ name }) }),
   arrivalsRead: (notes: { label: string; text: string }[]) =>
     call<ArrivalRead>("/api/arrivals/read", { method: "POST", body: JSON.stringify({ notes }) }),
-  arrivalsReport: (city: string, budget: number, guests: { label: string; interests: InterestIn[] }[], hotelList?: string[]) =>
+  arrivalsReport: (
+    city: string,
+    budget: number,
+    guests: { label: string; interests: InterestIn[] }[],
+    hotelList?: string[],
+    category: Category = "dining",
+  ) =>
     call<MorningReport>("/api/arrivals/report", {
       method: "POST",
-      body: JSON.stringify({ city, budget, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
+      body: JSON.stringify({ city, budget, category, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   agent: (text: string, city: string, budget: number, hotelList?: string[]) =>
     call<EditResult | NeedsInput | AgentError>("/api/agent", {
@@ -127,6 +135,14 @@ export const api = {
       body: JSON.stringify({ text, city, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
 };
+
+export type Category = "dining" | "nightlife";
+// Only categories that passed the blind test are offered (see /how).
+export const CATEGORIES: { id: Category; label: string }[] = [
+  { id: "dining", label: "Restaurants & bars" },
+  { id: "nightlife", label: "Live music & nightlife" },
+];
+export const categoryLabel = (c?: Category) => (c === "nightlife" ? "Live music & nightlife" : "Restaurants & bars");
 
 export const CITIES = ["London", "San Francisco", "New York", "Austin", "Berlin"];
 export const BUDGETS = [3, 5, 10];

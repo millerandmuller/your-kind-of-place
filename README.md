@@ -21,6 +21,8 @@ Built for the concierge and guest-experience team, who keep the last word: every
 
 Cities: London, San Francisco, New York, Austin, Berlin.
 
+Kinds of place: **Restaurants & bars** (the default and the demo) and **Live music & nightlife** (`filter.tags` live_music_venue + night_club; venues, clubs, bars and pubs only). Each was offered only after passing the blind test below; shops (9 of 12) and sights & attractions (3 of 12) did not pass and are not offered. Adult venues are dropped in every category (Qloo genre, tag or description).
+
 ### Dining filter
 
 For the default list and the guest's matches: Qloo's restaurant tag (`urn:tag:genre:place:restaurant`) also returns hotels, department stores, arenas and fast-food chains. A concierge doesn't recommend those, so both lists keep only sit-down food and drink by Qloo's `primary_genre` (restaurants, bars, pubs, cafés; no fast food, burger, ice-cream or donut shops, delivery or food courts), drop well-known chains (a fixed list in `list_edit.py`), and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for "New York City"). See `backend/app/list_edit.py` and `backend/app/service.py`.
@@ -32,6 +34,8 @@ Measured once before building (25 October 2026; San Francisco, Austin and London
 - **Blind matching:** a separate model, with no hint of Qloo, matched the two lists to the two guest profiles correctly in **11 of 12** cases.
 - **Stability:** the same queries 14 minutes later overlapped **0.99**.
 - **Default vs. taste:** a guest's list and the no-signal list overlapped **0.12**.
+
+**Categories, same blind test, threshold 10 of 12 set before the run:** live music & nightlife **10 of 12** (offered), shops 9 of 12, sights & attractions 3 of 12 (not offered).
 
 **Limits:** Fits this guest, not 'better'. Even similar tastes get different lists, so we don't claim anything about similar guests. The judge was a language model, and 12 cases is a small sample.
 

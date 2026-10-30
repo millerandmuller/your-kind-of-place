@@ -134,6 +134,44 @@ export default function How() {
         12 cases is a small sample, and the profiles were deliberately opposite.
       </p>
 
+      <h2>Which kinds of place we offer, and why only these</h2>
+      <p>
+        Before adding a category we ran the same blind test on it (written down before the run: 12 pairs of opposite guests
+        in San Francisco, Austin and London, a separate model matching two lists to two guests without knowing about Qloo,
+        pass at 10 of 12 or better; a list with fewer than 8 places counts as a miss).
+      </p>
+      <table>
+        <tbody>
+          <tr>
+            <th>Restaurants &amp; bars</th>
+            <td>11 of 12 (the first test, above) — offered, and the demo path</td>
+          </tr>
+          <tr>
+            <th>Live music &amp; nightlife</th>
+            <td>
+              <strong>10 of 12</strong> — offered under “Your guest (and list)” and “Arrivals”. Right on the line, so treat it as
+              the weaker of the two.
+            </td>
+          </tr>
+          <tr>
+            <th>Shops</th>
+            <td>9 of 12 — not offered: two opposite guests got largely the same shops.</td>
+          </tr>
+          <tr>
+            <th>Sights &amp; attractions</th>
+            <td>
+              3 of 12 — not offered: with a guest&apos;s taste, Qloo&apos;s attraction tag drifts to hotels and arcades, and in 6
+              of 12 cases too few real sights were left.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="label">
+        The nightlife test kept everything Qloo files under live music and night clubs except hotels. The product is
+        stricter: it keeps venues, clubs, bars and pubs only, and in every category drops adult venues (by Qloo genre, tag
+        or place description).
+      </p>
+
       <h2>What we don&apos;t claim</h2>
       <p className="limit">
         Fits this guest, not &apos;better&apos;. Even similar tastes get different lists, so we don&apos;t claim anything about

@@ -135,14 +135,19 @@ async def read_notes(r: Redliner, settings: Settings, notes: list[dict[str, str]
 
 
 async def morning_report(
-    r: Redliner, city: str, budget: int, guests: list[dict[str, Any]], hotel_lines: list[str] | None
+    r: Redliner,
+    city: str,
+    budget: int,
+    guests: list[dict[str, Any]],
+    hotel_lines: list[str] | None,
+    category: str = "dining",
 ) -> dict[str, Any]:
     async def one(g: dict[str, Any]) -> dict[str, Any]:
         interests = [InterestIn(x["name"], x.get("id")) for x in g["interests"][:MAX_INTERESTS]]
         if not interests:
             return {"label": g["label"], "result": {"status": "skipped", "message": "No favourites confirmed."}}
-        return {"label": g["label"], "result": await r.run(city, interests, budget, hotel_lines)}
+        return {"label": g["label"], "result": await r.run(city, interests, budget, hotel_lines, category)}
 
     budget = budget if budget in (3, 5, 10) else 5
     rows = await asyncio.gather(*[one(g) for g in guests[:MAX_GUESTS]])
-    return {"status": "ok", "city": city, "budget": budget, "guests": list(rows)}
+    return {"status": "ok", "city": city, "budget": budget, "category": category, "guests": list(rows)}

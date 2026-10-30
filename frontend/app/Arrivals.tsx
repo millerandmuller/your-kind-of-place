@@ -3,7 +3,10 @@
 import { useState } from "react";
 import {
   api,
+  CATEGORIES,
   CITIES,
+  categoryLabel,
+  type Category,
   guestName,
   LABEL,
   type ArrivalRead,
@@ -48,6 +51,7 @@ function reportText(rep: MorningReport): string {
 
 export default function Arrivals({ budget, hotelLines }: { budget: number; hotelLines: string[] }) {
   const [city, setCity] = useState("London");
+  const [category, setCategory] = useState<Category>("dining");
   const [text, setText] = useState("");
   const [read, setRead] = useState<ArrivalRead | null>(null);
   const [picked, setPicked] = useState<Record<string, Interest | null>>({});
@@ -132,7 +136,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
           .filter((x): x is Interest => !!x)
           .map((x) => ({ name: x.name, id: x.id })),
       }));
-      setReport(await api.arrivalsReport(city, budget, guests, hotelLines));
+      setReport(await api.arrivalsReport(city, budget, guests, hotelLines, category));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -159,6 +163,13 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               ))}
             </select>
           </label>
+          <span className="seg" role="group" aria-label="What to edit">
+            {CATEGORIES.map((c) => (
+              <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
+                {c.label}
+              </button>
+            ))}
+          </span>
           <span className="label" style={{ margin: 0 }}>
             {hotelLines.length ? `Using your hotel's list (${hotelLines.length} lines, from “Your guest”)` : "Using the city's default list"}
             {` · swap budget ${budget}`}
@@ -269,7 +280,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
       {report && (
         <section className="sheet report" aria-label="Morning report">
           <div className="sheet-head">
-            <h2>Morning report · {report.city}</h2>
+            <h2>
+              Morning report · {categoryLabel(report.category)} · {report.city}
+            </h2>
             <span className="noprint" style={{ display: "flex", gap: 8 }}>
               <button
                 className="btn ghost"

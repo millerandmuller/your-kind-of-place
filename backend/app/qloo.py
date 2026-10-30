@@ -25,6 +25,11 @@ INTEREST_TYPES = (
     "urn:entity:videogame",
 )
 DINING_TAG = "urn:tag:genre:place:restaurant"
+# Categories that passed the blind test (11/12 dining, 10/12 nightlife); others are not offered.
+CATEGORY_TAGS = {
+    "dining": DINING_TAG,
+    "nightlife": "urn:tag:genre:place:live_music_venue,urn:tag:genre:place:night_club",
+}
 
 
 def _genre_id(value: Any) -> str:
@@ -194,13 +199,19 @@ class QlooClient:
         return [r for r in data.get("results", []) if wanted & set(r.get("types") or wanted)]
 
     async def places(
-        self, city: str, interest_ids: list[str] | None = None, *, take: int = 50, explain: bool = False
+        self,
+        city: str,
+        interest_ids: list[str] | None = None,
+        *,
+        take: int = 50,
+        explain: bool = False,
+        category: str = "dining",
     ) -> list[dict[str, Any]]:
-        """Dining places in a city, ranked by Qloo. Without interests: the city's default ranking."""
+        """Places of one category in a city, ranked by Qloo. Without interests: the city's default ranking."""
         params: dict[str, Any] = {
             "filter.type": PLACE,
             "filter.location.query": city,
-            "filter.tags": DINING_TAG,
+            "filter.tags": CATEGORY_TAGS[category],
             "take": min(take, 50),
         }
         if interest_ids:
