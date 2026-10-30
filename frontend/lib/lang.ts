@@ -43,6 +43,10 @@ export const DICT: Record<string, { de: string; fr: string }> = {
     fr: "Arrivées d'exemple, choisies pour montrer le contraste. Essayez vos propres notes ici.",
   },
 
+  Map: { de: "Karte", fr: "Carte" },
+  "Switch to day": { de: "Zur Tagansicht wechseln", fr: "Passer en mode jour" },
+  "Switch to night": { de: "Zur Nachtansicht wechseln", fr: "Passer en mode nuit" },
+
   // Nav and message for the guest
   "How this works": { de: "So funktioniert es", fr: "Comment ça marche" },
   "Switch between day and night look": { de: "Zwischen Tag- und Nachtansicht wechseln", fr: "Basculer entre l'affichage jour et nuit" },

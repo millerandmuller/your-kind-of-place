@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useLang, useT } from "./LangContext";
+import MapLink from "./MapLink";
 import type { Vars } from "@/lib/lang";
 import {
   api,
@@ -407,6 +408,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                               ? l.note
                               : [l.place.kind, l.place.neighborhood].filter(Boolean).join(" · ")}
                         </div>
+                        <MapLink p={l.place} city={ok.city} struck={l.status === "strike"} />
                       </div>
                     </li>
                   ))}

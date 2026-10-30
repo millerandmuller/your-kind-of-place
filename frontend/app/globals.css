@@ -217,8 +217,13 @@ details.trace code, .live code { font-family: var(--font-ui); font-weight: 600; 
   .wrap { padding: 0; }
 }
 
-.maplink { color: var(--muted); display: inline-flex; align-self: center; padding: 2px; border-radius: 4px; }
-.maplink:hover, .maplink:focus-visible { color: var(--ink); }
+.maplink {
+  margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-family: var(--font-ui); font-size: 0.76rem; font-style: normal; color: var(--muted); text-decoration: none;
+  padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px;
+}
+html[data-theme="night"] .maplink { border-color: #ffffff2e; }
+.maplink:hover, .maplink:focus-visible { color: var(--ink); border-color: var(--ink); }
 .aff { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.72rem; color: var(--muted); }
 .aff .bar { width: 64px; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; display: inline-block; }
 .aff .bar > span { display: block; height: 100%; background: currentColor; }
@@ -304,3 +309,5 @@ html[data-theme="night"] .own textarea, html[data-theme="night"] select { border
 @media (max-width: 700px) {
   .tabs { mask-image: linear-gradient(90deg, #000 80%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 40px; }
 }
+.theme-toggle { display: inline-flex; align-items: center; padding: 5px 9px; }
+.theme-toggle svg { display: block; }

@@ -205,13 +205,26 @@ def dining(places: list[dict[str, Any]], category: str = "dining") -> list[dict[
     """The category's places, deduplicated, in Qloo's order."""
     keep = KEEP[category]
     seen: set[str] = set()
-    out = []
+    out: list[dict[str, Any]] = []
     for p in places:
         pid = p.get("entity_id")
-        if pid and pid not in seen and keep(p):
+        if pid and pid not in seen and keep(p) and not any(_same_place(p, q) for q in out):
             seen.add(pid)
             out.append(p)
     return out
+
+
+def _plain_name(place: dict[str, Any]) -> str:
+    name = re.sub(r"[^a-z0-9 ]", " ", str(place.get("name") or "").lower())
+    return " ".join(w for w in name.split() if w not in {"the", "london", "bar", "restaurant"})
+
+
+def _same_place(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """One venue listed twice in Qloo: the same name (articles and city aside) within 50 m."""
+    la, lb = a.get("location") or {}, b.get("location") or {}
+    if not _plain_name(a) or _plain_name(a) != _plain_name(b) or "lat" not in la or "lat" not in lb:
+        return False
+    return abs(la["lat"] - lb["lat"]) < 0.00045 and abs(la["lon"] - lb["lon"]) < 0.0007
 
 
 def drivers(place: dict[str, Any], names: dict[str, str]) -> list[dict[str, Any]]:

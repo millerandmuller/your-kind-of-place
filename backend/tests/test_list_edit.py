@@ -428,3 +428,10 @@ def test_notes_and_agent_fallback_speak_the_chosen_language():
          "agent_said": "Diese Liste ist besser für den Gast."}
     out = guard_agent_text(r)
     assert out["agent_said_checked"] is False and out["agent_said"].startswith("5 von 10")
+
+
+def test_one_venue_listed_twice_is_kept_once_but_namesakes_elsewhere_stay():
+    a = place("a", "restaurant:modern_european", lat=51.5082, lon=-0.0965); a["name"] = "Swan London"
+    b = place("b", "restaurant:modern_european", lat=51.5083, lon=-0.0966); b["name"] = "The Swan"
+    c = place("c", "restaurant:bar", lat=51.4721, lon=-0.1224); c["name"] = "The Swan"
+    assert [p["entity_id"] for p in rl.dining([a, b, c])] == ["a", "c"]

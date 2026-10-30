@@ -14,9 +14,9 @@ export type Place = {
   tags?: string[];
 };
 
-/** Google Maps search for a place, no API key: name plus address (or city). */
+/** Google Maps search for a place, no API key: name plus address, or name plus area and city. */
 export function mapsUrl(p: Place, city?: string): string {
-  const q = [p.name, p.address || city].filter(Boolean).join(", ");
+  const q = [p.name, ...(p.address ? [p.address] : [p.neighborhood, city])].filter(Boolean).join(", ");
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 

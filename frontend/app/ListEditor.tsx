@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Arrivals from "./Arrivals";
 import Nav from "./Nav";
+import MapLink from "./MapLink";
 import { LangContext, useLang, useT } from "./LangContext";
 import { LANGS, LOCALE, translate, type Lang, type Vars } from "@/lib/lang";
 import {
@@ -65,18 +66,6 @@ function meta(p: Place, t: T): string {
   const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
   if (p.typed) return t("{base} · listed as “{typed}”", { base, typed: p.typed });
   return base;
-}
-
-function MapLink({ p, city }: { p: Place; city?: string }) {
-  const t = useT();
-  if (p.in_qloo === false || p.in_house) return null;
-  return (
-    <a className="maplink noprint" href={mapsUrl(p, city)} target="_blank" rel="noreferrer" aria-label={t("{name} on Google Maps", { name: p.name })} title={t("Open in Google Maps")}>
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
-        <path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5c0 3.4 4.5 8.5 4.5 8.5s4.5-5.1 4.5-8.5A4.5 4.5 0 0 0 8 1.5Zm0 6.2a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4Z" fill="currentColor" />
-      </svg>
-    </a>
-  );
 }
 
 function Affinity({ value }: { value?: number }) {
@@ -446,6 +435,7 @@ function BeforeAfter({ r }: { r: EditResult }) {
               <div className="place">
                 <div className="name">{p.name}</div>
                 <div className="meta">{meta(p, t)}</div>
+                <MapLink p={p} city={r.city} />
               </div>
             </li>
           ))}
@@ -460,6 +450,7 @@ function BeforeAfter({ r }: { r: EditResult }) {
               <span className="num">{l.status === "insert" ? "+" : ""}</span>
               <div className="place">
                 <div className="name">{l.place.name}</div>
+                <MapLink p={l.place} city={r.city} struck={l.status === "strike"} />
                 {l.status === "insert" && <div className="cnote">{l.note}</div>}
               </div>
             </li>
@@ -501,8 +492,8 @@ function SideBySide({
               <span className="num">{i + 1}</span>
               <div className="place">
                 <div className="name">{p.name}</div>
-                <MapLink p={p} city={r.city} />
                 <div className="meta">{other.has(p.id) ? t("on both lists") : meta(p, t)}</div>
+                <MapLink p={p} city={r.city} />
                 {added.has(p.id) && notes.get(p.id) && <div className="cnote">{notes.get(p.id)}</div>}
               </div>
             </li>
@@ -570,8 +561,8 @@ function EditedList({
             <span className="num">{l.status === "insert" ? "+" : numbers[i]}</span>
             <div className="place">
               <div className="name">{l.place.name}</div>
-              <MapLink p={l.place} city={r.city} />
               <div className="meta">{meta(l.place, t)}</div>
+              <MapLink p={l.place} city={r.city} struck={l.status === "strike" ? !isRejected : isRejected} />
             </div>
             {l.status === "keep" ? (
               <span />
