@@ -582,7 +582,7 @@ function guestMessage(
     "Just let us know if you would like us to book or arrange anything.",
     "",
     "Kind regards,",
-    `The concierge team, ${hotel}`,
+    f.hotel.trim() ? `The concierge team, ${hotel}` : "The concierge team",
   ].join("\n");
   return channel === "email" ? `Subject: Your ${r.city} picks from ${hotel}\n\n${body}` : body;
 }
