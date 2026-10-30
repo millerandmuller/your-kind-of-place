@@ -85,17 +85,21 @@ class RedlineBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
-    hotel_list: list[str] | None = Field(default=None, max_length=10)  # the hotel's own list, one place per line
+    hotel_list: list[str] | None = Field(default=None, max_length=40)  # the hotel's own list, one place per line
 
     @field_validator("hotel_list")
     @classmethod
     def _lines(cls, v: list[str] | None) -> list[str] | None:
         if v is None:
             return None
-        lines = [_clean_text(x) for x in v if x.strip()]
+        # Blank and one-character lines are skipped, not errors; the cap counts real lines only.
+        lines = [" ".join(x.split()) for x in v]
+        lines = [x for x in lines if len(x) >= 2 and all(ord(c) >= 32 for c in x)]
         if any(len(x) > 120 for x in lines):
             raise ValueError("each line of the hotel's list must be under 120 characters")
-        return lines or None
+        if len(lines) > 10:
+            raise ValueError("the hotel's list can have up to 10 lines")
+        return [_clean_text(x) for x in lines] or None
 
 
 class AgentBody(BaseModel):
@@ -261,7 +265,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
 def qloo_http_error(exc: QlooError) -> HTTPException:
     if exc.status is not None and 400 <= exc.status < 500 and exc.status != 429:
-        return HTTPException(422, "Qloo couldn't use one of these favourites. Try a shorter or different name.")
+        return HTTPException(422, "Qloo couldn't use one of these entries. Try a shorter or different name.")
     return HTTPException(503, "Qloo isn't answering right now and there's no saved answer for this guest.")
 
 

@@ -25,7 +25,7 @@ import {
 type Tab = "default" | "g1" | "g2" | "both" | "own";
 
 function meta(p: Place): string {
-  if (p.in_qloo === false) return "Not found in Qloo · kept as is";
+  if (p.in_qloo === false) return "Not matched to a restaurant or bar in Qloo · kept as is";
   const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
   if (p.typed) return `${base} · listed as “${p.typed}”`;
   return base;
@@ -240,6 +240,7 @@ export default function Redline() {
           </div>
           <p className="label">
             {current?.source === "hotel" ? HOTEL_LABEL : DEFAULT_LABEL}
+            {current?.skipped?.length ? `. Skipped as repeats: ${current.skipped.join(", ")}` : ""}
             {tab === "default" ? "" : ". Red: struck for this guest. Green: added for this guest."}
           </p>
 
@@ -612,7 +613,11 @@ function OwnGuest({
             Sample {city} list
           </button>
         </div>
-        <small className="label">Each line is looked up in Qloo within 25 km of {city}. Names it can&apos;t find stay on the list unmarked.</small>
+        <small className="label">
+          Each line is matched to a restaurant or bar in Qloo within 25 km of {city}. Lines it can&apos;t match stay on the list
+          unmarked.
+          {hotelText.split("\n").filter((l) => l.trim()).length > 10 && " Only the first 10 lines are used."}
+        </small>
       </details>
       <div className="fields">
         <label className="label" style={{ display: "grid", gap: 4, margin: 0 }}>

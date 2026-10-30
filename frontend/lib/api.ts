@@ -37,6 +37,7 @@ export type Redline = {
   guest: Interest[];
   budget: number;
   source?: "default" | "hotel";
+  skipped?: string[];
   default: Place[];
   lines: Line[];
   final: Place[];
@@ -100,7 +101,7 @@ export const api = {
 export const CITIES = ["London", "San Francisco", "New York", "Austin", "Berlin"];
 export const BUDGETS = [3, 5, 10];
 export const LABEL = "Aggregate taste affinity from Qloo, not a review.";
-export const HOTEL_LABEL = "Your hotel's list: each line matched to a Qloo place in town; lines Qloo doesn't know are kept as is";
+export const HOTEL_LABEL = "Your hotel's list: each line matched to a restaurant or bar in Qloo; lines it can't match are kept as is";
 export const SAMPLE_LISTS: Record<string, string[]> = {
   London: ["The Wolseley", "Dishoom", "Hawksmoor", "Barrafina", "St. John", "Sketch", "Chiltern Firehouse", "Duck & Waffle", "Our Little Corner Bistro"],
   "New York": ["Katz's Delicatessen", "Balthazar", "Carbone", "Russ & Daughters", "Le Bernardin", "Minetta Tavern", "The Dead Rabbit", "Via Carota"],

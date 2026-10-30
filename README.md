@@ -10,7 +10,7 @@ Built for the concierge and guest-experience team, who keep the last word: every
 
 ## What it does
 
-1. **Default list, or the hotel's own.** Qloo Insights for dining places in the city with no taste signal stands in for the hotel's list. A concierge can paste the hotel's own list instead (up to 10 lines): each line is matched to a Qloo place within 25 km (exact name first, else the first in-town place whose name contains it, shown as "listed as …"); lines Qloo doesn't know stay as typed and are never struck.
+1. **Default list, or the hotel's own.** Qloo Insights for dining places in the city with no taste signal stands in for the hotel's list. A concierge can paste the hotel's own list instead (up to 10 lines): each line is matched to a restaurant or bar in Qloo within 25 km (exact name first, then a place whose name contains the line, then one whose name the line contains; shown as "listed as …"). Chains the hotel lists itself are kept. Lines that don't match stay as typed and are never struck; repeats are skipped and shown.
 2. **Guest.** Up to three favourites (a band, show, film, brand or game), resolved with Qloo search. If a name is ambiguous, Redline asks. It never guesses.
 3. **Taste matches.** The same Insights query with the guest's favourites as the signal and `feature.explainability=true`.
 4. **Redline (deterministic).** Struck: default entries that are not in the guest's top 50, lowest on the list first, up to the swap budget (3, 5 or 10). Inserted: the guest's best matches that aren't on the list yet, one per struck entry. Kept: everything else. Nothing is padded.
@@ -22,7 +22,7 @@ Cities: London, San Francisco, New York, Austin, Berlin.
 
 ### Dining filter
 
-Qloo's restaurant tag (`urn:tag:genre:place:restaurant`) also returns hotels, department stores, arenas and fast-food chains. A concierge doesn't recommend those, so both lists keep only sit-down food and drink by Qloo's `primary_genre` (restaurants, bars, pubs, cafés; no fast food, burger, ice-cream or donut shops, delivery or food courts), drop well-known chains (a fixed list in `redline.py`), and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for "New York City"). See `backend/app/redline.py` and `backend/app/service.py`.
+For the default list and the guest's matches: Qloo's restaurant tag (`urn:tag:genre:place:restaurant`) also returns hotels, department stores, arenas and fast-food chains. A concierge doesn't recommend those, so both lists keep only sit-down food and drink by Qloo's `primary_genre` (restaurants, bars, pubs, cafés; no fast food, burger, ice-cream or donut shops, delivery or food courts), drop well-known chains (a fixed list in `redline.py`), and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for "New York City"). See `backend/app/redline.py` and `backend/app/service.py`.
 
 ## What we measured, and what we don't claim
 

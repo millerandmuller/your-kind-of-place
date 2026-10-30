@@ -32,9 +32,11 @@ export default function How() {
       <h2>1b. Or the hotel&apos;s own list</h2>
       <p>
         Under “Your guest (and list)” a concierge can paste the hotel&apos;s own list, up to 10 lines. Each line is looked up with{" "}
-        <code>GET /search?types=urn:entity:place</code> and matched to the first place within 25 km whose name contains the
-        line (an exact name wins), so “Dishoom” becomes “Dishoom King&apos;s Cross” and the screen says “listed as ‘Dishoom’”.
-        Lines Qloo can&apos;t find stay on the list as typed, unmarked, and are never struck.
+        <code>GET /search?types=urn:entity:place</code> and matched to a restaurant or bar within 25 km (same dining filter as
+        above, except that chains the hotel lists itself are kept): an exact name first, then a place whose name contains the
+        line (“Dishoom” → “Dishoom King&apos;s Cross”), then a place whose name the line contains (“Kiln Soho” → “Kiln”). The
+        screen says “listed as ‘Dishoom’”. Lines that don&apos;t match stay on the list as typed, unmarked, and are never
+        struck; a line naming a place already on the list is skipped and shown as a repeat.
       </p>
 
       <h2>2. The guest</h2>

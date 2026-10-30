@@ -231,3 +231,24 @@ def test_hotel_list_is_matched_in_town_and_redlined(tmp_path):
         assert [p["name"] for p in body["default"]] == ["Dishoom King's Cross", "Chez Nous"]
         assert body["default"][0]["typed"] == "Dishoom" and body["default"][1]["in_qloo"] is False
         assert body["changed"] == 1  # only the matched line can be struck
+
+
+def longer_qloo(req: httpx.Request) -> httpx.Response:
+    if req.url.path == "/search" and "place" in req.url.params.get("types", ""):
+        q = req.url.params["query"]
+        museum = {**place("bm", "museum"), "name": "The British Museum"}
+        kiln = {**place("kiln"), "name": "Kiln"}
+        return httpx.Response(200, json={"results": [museum, kiln] if "Kiln" in q else [museum]})
+    return fake_qloo(req)
+
+
+def test_hotel_list_matches_shorter_qloo_names_skips_duplicates_and_non_dining(tmp_path):
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(longer_qloo))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+                                                 "hotel_list": ["Kiln Soho", "Kiln", "British Museum", " ", "x"]}).json()
+        assert [p["name"] for p in body["default"]] == ["Kiln", "British Museum"]
+        assert body["default"][0]["typed"] == "Kiln Soho"
+        assert body["default"][1]["in_qloo"] is False  # a museum is not a restaurant or bar
+        assert body["skipped"] == ["Kiln"]

@@ -55,11 +55,12 @@ def genre_of(place: dict[str, Any]) -> str:
     return gid[len(GENRE_PREFIX):] if gid.startswith(GENRE_PREFIX) else ""
 
 
-def is_dining(place: dict[str, Any]) -> bool:
+def is_dining(place: dict[str, Any], allow_chains: bool = False) -> bool:
+    """Sit-down food or drink. A hotel's own list may name a chain on purpose (allow_chains)."""
     genre = genre_of(place)
     if not genre or genre in NOT_A_RECOMMENDATION:
         return False
-    if is_chain(place):
+    if not allow_chains and is_chain(place):
         return False
     props = place.get("properties") or {}
     if _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}"):

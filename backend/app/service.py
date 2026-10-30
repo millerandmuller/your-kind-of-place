@@ -95,30 +95,38 @@ class Redliner:
         places = await self.qloo.places(CITY_QUERY.get(city, city), take=50)
         return in_town(city, rl.dining(places))[: self.length]
 
-    async def hotel_list(self, city: str, lines: list[str]) -> list[dict[str, Any]]:
-        """Match each line of the hotel's own list to a Qloo place in town, in the hotel's order.
+    async def hotel_list(self, city: str, lines: list[str]) -> tuple[list[dict[str, Any]], list[str]]:
+        """Match each line of the hotel's own list to a Qloo restaurant or bar in town, in order.
 
-        A line matches the first in-town search result whose name contains the typed name (so
-        "Dishoom" → "Dishoom King's Cross"; the typed text is kept and shown). Lines without a match
-        stay on the list as typed and are never struck.
+        Only sit-down food and drink within 25 km can match. An exact name wins; then a place whose
+        name contains the line ("Dishoom" → "Dishoom King's Cross"); then a place whose name the line
+        contains ("Kiln Soho" → "Kiln"). The typed text is kept and shown. Lines without a match stay
+        on the list as typed and are never struck. A line naming a place already on the list is
+        skipped and reported. Returns (places, skipped lines).
         """
         city = check_city(city)
         clean = [" ".join(l.split()) for l in lines if l.strip()][:MAX_LIST]
         found = await asyncio.gather(*[self.qloo.search(l, PLACE_TYPE, limit=10) for l in clean])
         out: list[dict[str, Any]] = []
+        skipped: list[str] = []
         seen: set[str] = set()
         for i, (line, results) in enumerate(zip(clean, found)):
             want = norm(line)
-            near = [r for r in in_town(city, results) if want and r["entity_id"] not in seen]
-            match = next((r for r in near if norm(r.get("name", "")) == want), None) or next(
-                (r for r in near if want in norm(r.get("name", ""))), None
+            near = [r for r in in_town(city, results) if rl.is_dining(r, allow_chains=True)]
+            named = [(norm(r.get("name", "")), r) for r in near]
+            match = (
+                next((r for n, r in named if n == want), None)
+                or next((r for n, r in named if want and want in n), None)
+                or next((r for n, r in sorted(named, key=lambda x: -len(x[0])) if len(n) >= 4 and n in want), None)
             )
-            if match:
+            if match and match["entity_id"] in seen:
+                skipped.append(line)
+            elif match:
                 seen.add(match["entity_id"])
                 out.append({**match, "typed": line if norm(match["name"]) != want else None})
             else:
                 out.append({"entity_id": f"{rl.UNMATCHED}{i}", "name": line, "properties": {}, "typed": line})
-        return out
+        return out, skipped
 
     async def taste_places(self, city: str, ids: list[str]) -> tuple[list[dict[str, Any]], set[str]]:
         """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50)."""
@@ -148,8 +156,15 @@ class Redliner:
     ) -> dict[str, Any]:
         city = check_city(city)
         names = {g.id: g.name for g in guests}
-        base = self.hotel_list(city, hotel_lines) if hotel_lines else self.default_list(city)
-        default, (taste, match_ids) = await asyncio.gather(base, self.taste_places(city, [g.id for g in guests]))
+        skipped: list[str] = []
+        if hotel_lines:
+            (default, skipped), (taste, match_ids) = await asyncio.gather(
+                self.hotel_list(city, hotel_lines), self.taste_places(city, [g.id for g in guests])
+            )
+        else:
+            default, (taste, match_ids) = await asyncio.gather(
+                self.default_list(city), self.taste_places(city, [g.id for g in guests])
+            )
         result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids)
         return {
             "match_count": len(match_ids),
@@ -157,6 +172,7 @@ class Redliner:
             "guest": [g.public() for g in guests],
             "budget": budget,
             "source": "hotel" if hotel_lines else "default",
+            "skipped": skipped,
             "default": [rl.public_place(p) for p in default],
             **result,
         }
