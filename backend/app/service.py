@@ -1,4 +1,4 @@
-"""One service behind the HTTP API, the agent and the MCP tool: same inputs, same redline."""
+"""One service behind the HTTP API, the agents and the MCP tool: same inputs, same edited list."""
 from __future__ import annotations
 
 import asyncio
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from . import redline as rl
+from . import list_edit as rl
 from .qloo import QlooClient, start_trace
 from .qloo import PLACE as PLACE_TYPE
 from .resolve import Clarify, Entity, NotFound, norm, resolve_interest
@@ -192,7 +192,7 @@ class Redliner:
     async def run(
         self, city: str, interests: list[InterestIn], budget: int = 5, hotel_lines: list[str] | None = None
     ) -> dict[str, Any]:
-        """Resolve (ask when unclear) → default list → taste matches → redline."""
+        """Resolve (ask when unclear) → default list → taste matches → edited list."""
         city = check_city(city)
         trace = start_trace()
         if budget not in rl.BUDGETS:

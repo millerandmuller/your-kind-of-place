@@ -11,7 +11,7 @@ import {
   type Interest,
   type MorningReport,
   type Option,
-  type Redline as RedlineResult,
+  type EditResult,
 } from "@/lib/api";
 
 const SAMPLE = [
@@ -37,7 +37,7 @@ function reportText(rep: MorningReport): string {
   const parts = rep.guests.map((g) => {
     const r = g.result;
     if (r.status !== "ok") return `${g.label}\n   (no list: ${r.status === "skipped" ? "no favourites confirmed" : "needs a pick"})`;
-    const ok = r as RedlineResult;
+    const ok = r as EditResult;
     const rows = ok.lines.map((l) =>
       l.status === "strike" ? `   - ${l.place.name}` : l.status === "insert" ? `   + ${l.place.name}  (${l.note})` : `     ${l.place.name}`,
     );
@@ -292,7 +292,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                   <p className="label">{r.status === "skipped" ? "No favourites confirmed, so the list stays as it is." : "A favourite needs a pick first."}</p>
                 </div>
               );
-            const ok = r as RedlineResult;
+            const ok = r as EditResult;
             return (
               <div className="report-guest" key={i}>
                 <h3>

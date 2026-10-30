@@ -1,7 +1,7 @@
 import httpx
 from fastapi.testclient import TestClient
 
-from app import redline as rl
+from app import list_edit as rl
 from app.api import create_app, guard_agent_text
 from app.service import cached_label, in_town
 from app.cache import FileCache
@@ -111,7 +111,7 @@ def test_api_redline_end_to_end_with_a_fake_qloo(tmp_path):
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(fake_qloo))
     app = create_app(s, Redliner(qloo, 10))
     with TestClient(app) as client:
-        r = client.post("/api/redline", json={"city": "london", "interests": [{"name": "Amy Winehouse"}], "budget": 5})
+        r = client.post("/api/edit", json={"city": "london", "interests": [{"name": "Amy Winehouse"}], "budget": 5})
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["status"] == "ok" and body["city"] == "London" and body["changed"] == 5
@@ -119,7 +119,7 @@ def test_api_redline_end_to_end_with_a_fake_qloo(tmp_path):
         assert body["cached"] is False
         inserts = [l for l in body["lines"] if l["status"] == "insert"]
         assert inserts[0]["note"] == "Because you love Amy Winehouse · Soho · Pub"
-        assert client.post("/api/redline", json={"city": "Paris", "interests": [{"name": "Amy"}]}).status_code == 422
+        assert client.post("/api/edit", json={"city": "Paris", "interests": [{"name": "Amy"}]}).status_code == 422
         assert client.get("/api/demo").json()["pairs"][0]["city"] == "London"
 
 
@@ -151,7 +151,7 @@ def test_same_favourite_twice_counts_once(tmp_path):
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(fake_qloo))
     app = create_app(s, Redliner(qloo, 10))
     with TestClient(app) as client:
-        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [
+        body = client.post("/api/edit", json={"city": "London", "budget": 5, "interests": [
             {"name": "Amy Winehouse"}, {"name": "amy winehouse"}]}).json()
         assert [g["name"] for g in body["guest"]] == ["Amy Winehouse"]
         assert body["match_count"] == 14
@@ -165,7 +165,7 @@ def test_qloo_rejecting_an_input_is_not_reported_as_an_outage(tmp_path):
 
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(bad))
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
-        r = client.post("/api/redline", json={"city": "London", "interests": [{"name": "Aesop"}]})
+        r = client.post("/api/edit", json={"city": "London", "interests": [{"name": "Aesop"}]})
         assert r.status_code == 422 and "isn't answering" not in r.text
 
 
@@ -174,7 +174,7 @@ def test_rate_limit_key_ignores_spoofed_forwarded_for(tmp_path, monkeypatch):
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(fake_qloo))
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
         body = {"city": "London", "interests": [{"name": "Amy Winehouse"}]}
-        codes = [client.post("/api/redline", json=body, headers={"x-forwarded-for": f"10.0.0.{i}, 1.2.3.4"}).status_code
+        codes = [client.post("/api/edit", json=body, headers={"x-forwarded-for": f"10.0.0.{i}, 1.2.3.4"}).status_code
                  for i in range(4)]
         assert codes.count(429) == 2
 
@@ -225,7 +225,7 @@ def test_hotel_list_is_matched_in_town_and_redlined(tmp_path):
     s = settings(tmp_path)
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(hotel_qloo))
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
-        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+        body = client.post("/api/edit", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
                                                  "hotel_list": ["Dishoom", "Chez Nous"]}).json()
         assert body["source"] == "hotel"
         assert [p["name"] for p in body["default"]] == ["Dishoom King's Cross", "Chez Nous"]
@@ -246,7 +246,7 @@ def test_hotel_list_matches_shorter_qloo_names_skips_duplicates_and_non_dining(t
     s = settings(tmp_path)
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(longer_qloo))
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
-        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+        body = client.post("/api/edit", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
                                                  "hotel_list": ["Kiln Soho", "Kiln", "British Museum", " ", "x"]}).json()
         assert [p["name"] for p in body["default"]] == ["Kiln", "British Museum"]
         assert body["default"][0]["typed"] == "Kiln Soho"
@@ -276,7 +276,7 @@ def test_in_house_lines_and_partial_words_never_match(tmp_path):
     s = settings(tmp_path)
     qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(q))
     with TestClient(create_app(s, Redliner(qloo, 10))) as client:
-        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+        body = client.post("/api/edit", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
                                                  "hotel_list": ["Our rooftop bar", "our rooftop bar & grill", "Hour Rooftop"]}).json()
         assert [p["in_qloo"] for p in body["default"]] == [False, False, True]
         assert [p["in_house"] for p in body["default"]] == [True, True, False]

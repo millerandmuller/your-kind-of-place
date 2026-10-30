@@ -14,8 +14,8 @@ const serif = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "Redline: the hotel's list, edited for each guest",
-  description: "Every hotel guest gets the same list of restaurants and bars. Redline edits it for each guest, with a note on every change.",
+  title: "Your Kind of Place: the hotel's list, edited for each guest",
+  description: "Every hotel guest gets the same list of restaurants and bars. Your Kind of Place edits it for each guest, with a note on every change.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

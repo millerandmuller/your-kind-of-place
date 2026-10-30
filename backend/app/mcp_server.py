@@ -1,4 +1,4 @@
-"""The same capability as an open MCP tool: redline(city, interests[], budget, hotel_list[])."""
+"""The same capability as an open MCP tool: edit_hotel_list(city, interests[], budget, hotel_list[])."""
 from __future__ import annotations
 
 import asyncio
@@ -7,14 +7,14 @@ from typing import Any, Callable
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
-from .redline import BUDGETS
+from .list_edit import BUDGETS
 from .service import cached_label
 from .service import CITIES, InterestIn, Redliner, UnknownCity
 
 
 def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
     mcp = FastMCP(
-        "redline",
+        "your-kind-of-place",
         stateless_http=True,
         json_response=True,
         streamable_http_path="/",
@@ -23,7 +23,7 @@ def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
     )
 
     @mcp.tool()
-    async def redline(
+    async def edit_hotel_list(
         city: str, interests: list[str], budget: int = 5, hotel_list: list[str] | None = None
     ) -> dict[str, Any]:
         """Edit a hotel's list of restaurants and bars for one guest.

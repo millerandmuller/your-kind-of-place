@@ -1,4 +1,4 @@
-"""The redline: the city's default list, edited for one guest. Deterministic, no model involved.
+"""The edited list: the hotel's or the city's list, edited for one guest. Deterministic, no model involved.
 
 Rules (also shown on the "How this works" page):
 - Struck: list entries that are not among the guest's top taste matches, the ones with the lowest

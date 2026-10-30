@@ -19,7 +19,7 @@ import {
   type Line,
   type NeedsInput,
   type Place,
-  type Redline as RedlineResult,
+  type EditResult,
   type TraceStep,
 } from "@/lib/api";
 
@@ -39,12 +39,12 @@ function pairLabel(p: DemoPair): string {
   return `${p.city}: ${guestName(p.guest1)} vs. ${guestName(p.guest2)}`;
 }
 
-export default function Redline() {
+export default function ListEditor() {
   const [pairs, setPairs] = useState<DemoPair[]>([]);
   const [pairIdx, setPairIdx] = useState(0);
   const [budget, setBudget] = useState(5);
   const [tab, setTab] = useState<Tab>("default");
-  const [results, setResults] = useState<Partial<Record<Tab, RedlineResult>>>({});
+  const [results, setResults] = useState<Partial<Record<Tab, EditResult>>>({});
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [hotelOpen, setHotelOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function Redline() {
     let live = true;
     const load = (key: "g1" | "g2", g: typeof pair.guest1) =>
       api
-        .redline(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget)
+        .edit(pair.city, g.map((x) => ({ name: x.name, id: x.id })), budget)
         .then((res) => {
           if (!live) return;
           if (res.status === "ok") setResults((r) => ({ ...r, [key]: res }));
@@ -130,13 +130,13 @@ export default function Redline() {
       <header className="top noprint">
         <div>
           <h1 className="brand">
-            <span className="r">Red</span>line
+            Your Kind of <span className="ins">Place</span>
           </h1>
-          <p className="lede">Every hotel guest gets the same list. Redline edits it for each guest.</p>
+          <p className="lede">Every hotel guest gets the same list. Your Kind of Place edits it for each guest.</p>
         </div>
         <nav className="toplinks">
           <Link href="/how">How this works</Link>
-          <a href="https://github.com/millerandmuller/redline">Code</a>
+          <a href="https://github.com/millerandmuller/your-kind-of-place">Code</a>
         </nav>
       </header>
 
@@ -288,7 +288,7 @@ export default function Redline() {
               ))}
             </ol>
           ) : (
-            <RedlineList r={current} rejected={rej} toggle={toggle} open={open} setOpen={setOpen} />
+            <EditedList r={current} rejected={rej} toggle={toggle} open={open} setOpen={setOpen} />
           )}
 
           {current && (
@@ -340,8 +340,8 @@ function SideBySide({
   rb,
   share,
 }: {
-  a: RedlineResult;
-  b: RedlineResult;
+  a: EditResult;
+  b: EditResult;
   ra: Set<string>;
   rb: Set<string>;
   share: number;
@@ -350,7 +350,7 @@ function SideBySide({
   const fb = finalList(b, rb);
   const inB = new Set(fb.map((p) => p.id));
   const inA = new Set(fa.map((p) => p.id));
-  const col = (r: RedlineResult, list: Place[], other: Set<string>, title: string) => {
+  const col = (r: EditResult, list: Place[], other: Set<string>, title: string) => {
     const added = new Set(r.lines.filter((l) => l.status === "insert").map((l) => l.place.id));
     return (
       <div className="col">
@@ -396,14 +396,14 @@ function TabButton({ id, tab, choose, kicker, title }: { id: Tab; tab: Tab; choo
   );
 }
 
-function RedlineList({
+function EditedList({
   r,
   rejected,
   toggle,
   open,
   setOpen,
 }: {
-  r: RedlineResult;
+  r: EditResult;
   rejected: Set<string>;
   toggle: (strikeId: string, reject: boolean) => void;
   open: string | null;
@@ -463,7 +463,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function Detail({ line, r }: { line: Line; r: RedlineResult }) {
+function Detail({ line, r }: { line: Line; r: EditResult }) {
   const p = line.place;
   const rank = line.status === "strike" ? (line.why as unknown as AffinityRank[] | undefined)?.[0] : undefined;
   if (line.status === "strike") {
@@ -505,7 +505,7 @@ function Detail({ line, r }: { line: Line; r: RedlineResult }) {
   );
 }
 
-function sendText(r: RedlineResult, rejected: Set<string>): string {
+function sendText(r: EditResult, rejected: Set<string>): string {
   const notes = new Map<string, string>();
   for (const l of r.lines) if (l.status === "insert" && !rejected.has(l.replaces ?? "")) notes.set(l.place.id, l.note);
   const rows = finalList(r, rejected).map((p, i) => {
@@ -516,7 +516,7 @@ function sendText(r: RedlineResult, rejected: Set<string>): string {
   return `Picked for you: restaurants & bars in ${r.city}\n\n${rows.join("\n")}\n\nPicks marked with a note were chosen for your taste. ${LABEL}`;
 }
 
-function SendOut({ r, rejected }: { r: RedlineResult; rejected: Set<string> }) {
+function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
   const text = sendText(r, rejected);
   const [copied, setCopied] = useState(false);
   return (
@@ -554,7 +554,7 @@ function OwnGuest({
   hotelText: string;
   setHotelText: (v: string) => void;
   onStart: () => void;
-  onResult: (r: RedlineResult) => void;
+  onResult: (r: EditResult) => void;
 }) {
   const [city, setCity] = useState("London");
   const [names, setNames] = useState(["", "", ""]);
@@ -590,7 +590,7 @@ function OwnGuest({
       setAgent(null);
       onStart();
       try {
-        const r = await api.redline(city, interests, budget, hotelLines());
+        const r = await api.edit(city, interests, budget, hotelLines());
         if (r.status === "ok") onResult(r);
         else setIssues((r as NeedsInput).issues);
       } catch (e) {
@@ -614,7 +614,7 @@ function OwnGuest({
       setAgent({ said: r.agent_said, trace: r.trace });
       if (r.city && CITIES.includes(r.city)) setCity(r.city);
       if (r.status === "ok") {
-        const ok = r as RedlineResult;
+        const ok = r as EditResult;
         setNames([0, 1, 2].map((i) => ok.guest[i]?.name ?? ""));
         setIds([0, 1, 2].map((i) => ok.guest[i]?.id));
         onResult(ok);

@@ -1,4 +1,4 @@
-"""HTTP surface: /api/redline, /api/agent, /api/demo, /api/cities, /api/health, and /mcp."""
+"""HTTP surface: /api/edit, /api/agent, /api/demo, /api/cities, /api/health, and /mcp."""
 from __future__ import annotations
 
 import asyncio
@@ -81,7 +81,7 @@ class InterestBody(BaseModel):
         return v
 
 
-class RedlineBody(BaseModel):
+class EditBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
@@ -108,7 +108,7 @@ class AgentBody(BaseModel):
     budget: int = 5
     hotel_list: list[str] | None = Field(default=None, max_length=40)
 
-    _hotel = field_validator("hotel_list")(RedlineBody._lines.__func__)
+    _hotel = field_validator("hotel_list")(EditBody._lines.__func__)
 
     @field_validator("text")
     @classmethod
@@ -169,7 +169,7 @@ class ReportBody(BaseModel):
     guests: list[ArrivalGuest] = Field(min_length=1, max_length=6)
     hotel_list: list[str] | None = Field(default=None, max_length=40)
 
-    _hotel = field_validator("hotel_list")(RedlineBody._lines.__func__)
+    _hotel = field_validator("hotel_list")(EditBody._lines.__func__)
 
 
 def create_app(settings: Settings | None = None, redliner: Redliner | None = None) -> FastAPI:
@@ -196,7 +196,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         for close in state["close"]:
             await close()
 
-    app = FastAPI(title="Redline", lifespan=lifespan)
+    app = FastAPI(title="Your Kind of Place", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # public read-only demo, no credentials, no cookies
@@ -263,8 +263,8 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
     async def demo() -> dict[str, Any]:
         return load_demo()
 
-    @app.post("/api/redline")
-    async def make_redline(body: RedlineBody, request: Request) -> dict[str, Any]:
+    @app.post("/api/edit")
+    async def make_edit(body: EditBody, request: Request) -> dict[str, Any]:
         guard(request)
         r: Redliner = state["redliner"]
         try:
@@ -283,7 +283,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
     @app.post("/api/agent")
     async def agent(body: AgentBody, request: Request) -> dict[str, Any]:
-        """Free text in, a redline out: the ADK agent picks the favourites, asks when unclear, edits."""
+        """Free text in, an edited list out: the ADK agent picks the favourites, asks when unclear, edits."""
         llm_guard(request)
         from .agent import run_agent
 
@@ -333,7 +333,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
     @app.post("/api/arrivals/report")
     async def arrivals_report(body: ReportBody, request: Request) -> dict[str, Any]:
-        """One redlined list per confirmed guest: the morning report."""
+        """One edited list per confirmed guest: the morning report."""
         guard(request)
         from .arrivals import morning_report
 

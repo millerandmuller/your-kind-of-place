@@ -1,7 +1,7 @@
 """The ADK agent. Free text about a guest in, the hotel's list edited for that guest out.
 
 It decides in order: pick the favourites from the text → resolve each (ask when unclear) → read the
-default list → read the guest's taste matches → redline → explain one change. Its tools are the same
+default list → read the guest's taste matches → edit the list → explain one change. Its tools are the same
 service functions the HTTP API uses, so the agent cannot invent places or reasons: those only come
 back from Qloo. Pattern follows adk-samples/core/python/deep-search (LlmAgent + function tools).
 """
@@ -13,7 +13,7 @@ from google.adk.agents import LlmAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from . import redline as rl
+from . import list_edit as rl
 from .config import Settings
 from .qloo import QlooError, start_trace
 from .resolve import Clarify, Entity, NotFound, resolve_interest
@@ -28,7 +28,7 @@ The guest is described in free text. Work in this order and never skip a step:
 2. default_list(city) for the hotel's city. Cities: {", ".join(CITIES)}. Use the city named in the
    text if it is one of these, otherwise the hotel city given in the message.
 3. taste_places(city, interest_ids)
-4. redline(city, interest_ids, budget)
+4. edit_list(city, interest_ids, budget)
 5. explain_place(place_name) for the first inserted place.
 Then answer with one or two short sentences: how many of the list's entries changed and why the
 first insert is there, using only the words returned by the tools. Never name a place, a reason or
@@ -96,14 +96,14 @@ def build_tools(ws: Workspace):
                        "output": f"{len(dining)} dining matches in the top 50"})
         return {"places": [p["name"] for p in dining[:15]]}
 
-    async def redline(city: str, interest_ids: list[str], budget: int = 0) -> dict[str, Any]:
+    async def edit_list(city: str, interest_ids: list[str], budget: int = 0) -> dict[str, Any]:
         """Edit the default list: strike entries outside the guest's top 50, insert the best matches."""
         ids = [i for i in interest_ids if i in ws.entities][:3]
         if not ids:
             return {"status": "error", "message": "resolve_interest must succeed first"}
         out = await ws.r.edit(ws.city, [ws.entities[i] for i in ids], ws.budget, ws.hotel_lines)
         ws.result = out
-        ws.log.append({"tool": "redline", "input": {"budget": ws.budget},
+        ws.log.append({"tool": "edit_list", "input": {"budget": ws.budget},
                        "output": f"{out['changed']} of {out['length']} changed"})
         return {
             "changed": f"{out['changed']} of {out['length']}",
@@ -121,7 +121,7 @@ def build_tools(ws: Workspace):
         ws.log.append({"tool": "explain_place", "input": place_name, "output": note})
         return {"note": note, "label": "Aggregate taste affinity from Qloo, not a review."}
 
-    return [resolve_interest_tool, default_list, taste_places, redline, explain_place]
+    return [resolve_interest_tool, default_list, taste_places, edit_list, explain_place]
 
 
 def adk_model(settings: Settings, model: str | None = None):
@@ -163,13 +163,13 @@ async def _run(
     trace = start_trace()
     ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5, hotel_lines)
     agent = LlmAgent(
-        name="redline_concierge",
+        name="concierge",
         model=adk_model(settings, model),
         instruction=INSTRUCTION,
         tools=build_tools(ws),
     )
-    runner = InMemoryRunner(agent=agent, app_name="redline")
-    session = await runner.session_service.create_session(app_name="redline", user_id="web")
+    runner = InMemoryRunner(agent=agent, app_name="your-kind-of-place")
+    session = await runner.session_service.create_session(app_name="your-kind-of-place", user_id="web")
     prompt = f"Hotel city: {ws.city}\nGuest: {text}"
     final = ""
     try:

@@ -1,10 +1,10 @@
-"""Tomorrow's arrivals: CRM notes in, one redlined list per guest out.
+"""Tomorrow's arrivals: CRM notes in, one edited list per guest out.
 
 Two steps, so the concierge stays in charge:
 1. read_notes — an ADK agent reads each note and records the guest's favourites. Only words that
    literally appear in the note are kept; each one is then resolved in Qloo (asking when unclear).
 2. morning_report — after the concierge confirmed the favourites, every guest gets the same
-   deterministic redline as the single-guest view.
+   deterministic edit as the single-guest view.
 """
 from __future__ import annotations
 
@@ -97,8 +97,8 @@ async def extract(settings: Settings, notes: list[str]) -> tuple[list[list[str]]
         return {"status": "ok", "kept": kept}
 
     agent = LlmAgent(name="arrivals_reader", model=adk_model(settings), instruction=INSTRUCTION, tools=[record_guest])
-    runner = InMemoryRunner(agent=agent, app_name="redline-arrivals")
-    session = await runner.session_service.create_session(app_name="redline-arrivals", user_id="web")
+    runner = InMemoryRunner(agent=agent, app_name="your-kind-of-place-arrivals")
+    session = await runner.session_service.create_session(app_name="your-kind-of-place-arrivals", user_id="web")
     prompt = "\n".join(f"{i + 1}. {n}" for i, n in enumerate(notes))
     async for _ in runner.run_async(
         user_id="web", session_id=session.id, new_message=types.Content(role="user", parts=[types.Part(text=prompt)])

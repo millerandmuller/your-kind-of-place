@@ -1,5 +1,5 @@
-import Redline from "./Redline";
+import ListEditor from "./ListEditor";
 
 export default function Home() {
-  return <Redline />;
+  return <ListEditor />;
 }

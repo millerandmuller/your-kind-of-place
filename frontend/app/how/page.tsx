@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "How Redline works" };
+export const metadata: Metadata = { title: "How Your Kind of Place works" };
 
 export default function How() {
   return (
@@ -43,8 +43,8 @@ export default function How() {
       <h2>2. The guest</h2>
       <p>
         Up to three favourites (a band, show, film, brand or game), found with <code>GET /search</code>. If a name matches more
-        than one thing, Redline asks. The one exception: when a single exact match has Qloo popularity of at least 0.9 and
-        every other exact match is at least 0.15 lower (“Succession” the show, not the film), Redline takes it and shows its
+        than one thing, it asks. The one exception: when a single exact match has Qloo popularity of at least 0.9 and
+        every other exact match is at least 0.15 lower (“Succession” the show, not the film), it takes it and shows its
         type on the list, so you can see what it used.
       </p>
 
@@ -54,7 +54,7 @@ export default function How() {
         <code>…&amp;signal.interests.entities=&lt;ids&gt;&amp;feature.explainability=true&amp;take=50</code>
       </p>
 
-      <h2>4. The redline (deterministic)</h2>
+      <h2>4. The edit (deterministic)</h2>
       <ul>
         <li>
           <strong>Struck:</strong> list entries that are not in the guest&apos;s top 50, the ones this guest&apos;s taste
@@ -83,12 +83,12 @@ export default function How() {
       <h2>5. The agent</h2>
       <p>
         “Ask the agent” runs a Google ADK agent (Claude via LiteLLM) with five tools: <code>resolve_interest</code>,{" "}
-        <code>default_list</code>, <code>taste_places</code>, <code>redline</code>, <code>explain_place</code>. It reads the
-        favourites out of free text, asks when a name is unclear and returns the same redline as the form, on the hotel&apos;s
+        <code>default_list</code>, <code>taste_places</code>, <code>edit_list</code>, <code>explain_place</code>. It reads the
+        favourites out of free text, asks when a name is unclear and returns the same edited list as the form, on the hotel&apos;s
         own list if one is pasted. Its tool calls are shown
         under the result; its sentence is checked on the server and replaced by a plain summary if it names a number the tools
         didn&apos;t return or compares the list to anything. The same capability is an MCP tool at{" "}
-        <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget, hotel_list[])</code>.
+        <code>https://your-kind-of-place-api-588508999301.us-east1.run.app/mcp/</code>: <code>edit_hotel_list(city, interests[], budget, hotel_list[])</code>.
       </p>
 
       <h2>6. Tomorrow&apos;s arrivals</h2>
@@ -98,7 +98,7 @@ export default function How() {
         keeps a favourite only if it is literally written in that note and not negated in the same clause (“hates
         Coldplay”), then resolves each in Qloo. Without the agent (“Skip the agent”, or if it fails) the concierge types
         favourites per guest. The concierge confirms or
-        removes every favourite (and picks when a name is ambiguous); only then is each guest&apos;s list redlined with the same
+        removes every favourite (and picks when a name is ambiguous); only then is each guest&apos;s list edited with the same
         rules as above, on the hotel&apos;s own list if one was pasted. The morning report shows each guest&apos;s full list and
         can be copied or printed.
       </p>
@@ -141,7 +141,7 @@ export default function How() {
       </p>
       <p>
         In the same test, two fans of nearly the same music also got very different lists. Qloo moves a lot with small
-        differences in taste, so Redline shows opposite guests (one after the other, or side by side under “Compare”) and says nothing about
+        differences in taste, so the app shows opposite guests (one after the other, or side by side under “Compare”) and says nothing about
         guests who are alike.
       </p>
       <p>

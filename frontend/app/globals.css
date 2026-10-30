@@ -34,7 +34,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* header */
 .top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 .brand { font-family: var(--font-serif), Georgia, serif; font-size: 2rem; margin: 0; letter-spacing: -0.01em; }
-.brand .r { color: var(--red); text-decoration: line-through; text-decoration-thickness: 2px; }
+.brand .ins { color: var(--green); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
 .lede { font-family: var(--font-serif), Georgia, serif; font-size: clamp(1.15rem, 2.4vw, 1.5rem); margin: 6px 0 0; max-width: 40ch; }
 .toplinks { display: flex; gap: 16px; font-size: 0.9rem; color: var(--muted); }
 
@@ -112,7 +112,7 @@ ol.list { list-style: none; margin: 8px 0 0; padding: 0; }
 .detail p { margin: 0 0 6px; }
 .detail .src { color: var(--muted); font-size: 0.76rem; }
 
-/* redline reveal: edits arrive one row after another */
+/* reveal: edits arrive one row after another */
 @keyframes mark { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 .animate .row.strike, .animate .row.insert { animation: mark 380ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .animate .row.strike, .animate .row.insert { animation: none; } }

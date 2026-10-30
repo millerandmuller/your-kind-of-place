@@ -32,7 +32,7 @@ export type Issue =
 
 export type TraceStep = { tool: string; input: unknown; output: unknown };
 
-export type Redline = {
+export type EditResult = {
   status: "ok";
   city: string;
   guest: Interest[];
@@ -85,7 +85,7 @@ export type MorningReport = {
   status: "ok";
   city: string;
   budget: number;
-  guests: { label: string; result: Redline | NeedsInput | { status: "skipped"; message: string } }[];
+  guests: { label: string; result: EditResult | NeedsInput | { status: "skipped"; message: string } }[];
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -107,8 +107,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   demo: () => call<{ pairs: DemoPair[] }>("/api/demo"),
   cities: () => call<{ cities: string[] }>("/api/cities"),
-  redline: (city: string, interests: InterestIn[], budget: number, hotelList?: string[]) =>
-    call<Redline | NeedsInput>("/api/redline", {
+  edit: (city: string, interests: InterestIn[], budget: number, hotelList?: string[]) =>
+    call<EditResult | NeedsInput>("/api/edit", {
       method: "POST",
       body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
@@ -122,7 +122,7 @@ export const api = {
       body: JSON.stringify({ city, budget, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   agent: (text: string, city: string, budget: number, hotelList?: string[]) =>
-    call<Redline | NeedsInput | AgentError>("/api/agent", {
+    call<EditResult | NeedsInput | AgentError>("/api/agent", {
       method: "POST",
       body: JSON.stringify({ text, city, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
@@ -147,7 +147,7 @@ export function guestName(g: { name: string }[]): string {
 }
 
 /** The list as the guest would get it: accepted changes applied, rejected ones reverted. */
-export function finalList(r: Redline, rejected: Set<string>): Place[] {
+export function finalList(r: EditResult, rejected: Set<string>): Place[] {
   const out: Place[] = [];
   for (const l of r.lines) {
     if (l.status === "keep") out.push(l.place);

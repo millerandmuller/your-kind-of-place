@@ -103,7 +103,7 @@ class QlooClient:
         self.cache = cache
         self._client = httpx.AsyncClient(
             base_url=settings.qloo_base_url,
-            headers={"X-Api-Key": settings.qloo_api_key, "User-Agent": "redline/1.0"},
+            headers={"X-Api-Key": settings.qloo_api_key, "User-Agent": "your-kind-of-place/1.0"},
             timeout=httpx.Timeout(20.0, connect=4.0),  # New York place queries take ~9-10 s
             transport=transport,
         )
@@ -168,7 +168,7 @@ class QlooClient:
     async def affinity(self, place_ids: list[str], interest_ids: list[str]) -> dict[str, float]:
         """The guest's taste affinity for exactly these places (Insights restricted to their ids).
 
-        Empty when Qloo can't answer: the redline then falls back to list order, it never guesses.
+        Empty when Qloo can't answer: the edit then falls back to list order, it never guesses.
         """
         params = {
             "filter.type": PLACE,
