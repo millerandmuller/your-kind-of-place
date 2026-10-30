@@ -18,11 +18,39 @@ from pydantic import BaseModel, Field, field_validator
 from .cache import FileCache
 from .config import Settings, load_settings
 from .qloo import QlooError
-from .service import CITIES, InterestIn, Redliner, UnknownCity, load_demo
+from .service import CITIES, InterestIn, Redliner, UnknownCity, cached_label, load_demo
 
 _ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
-# A saved answer younger than this is just the same visit; older ones are labelled "cached result".
-CACHED_LABEL_AFTER_S = 600
+# Words the agent may not use about a list: we measured "fits this guest", nothing else.
+_CLAIMS = re.compile(r"\b(better|best|worse|beats?|google|chatgpt|yelp|tripadvisor|michelin|rated|rating|score[sd]?|stars?|reviews?)\b", re.I)
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+
+
+def guard_agent_text(result: dict[str, Any]) -> dict[str, Any]:
+    """Keep the agent's sentence only if every number in it came from the tools and it makes no
+    claim we didn't measure. Otherwise say the same thing from the result itself."""
+    said = result.get("agent_said") or ""
+    if result.get("status") != "ok":
+        if _CLAIMS.search(said) or _NUMBER.search(said):
+            result["agent_said"] = ""
+        return result
+    allowed = {str(result.get("changed")), str(result.get("length")), "50"}
+    for line in result.get("lines", []):
+        allowed.update(_NUMBER.findall(line.get("note", "") + " " + (line["place"].get("name") or "")))
+    numbers = set(_NUMBER.findall(said)) | {
+        str(_WORDS[w.lower()]) for w in re.findall(r"\b[A-Za-z]+\b", said) if w.lower() in _WORDS
+    }
+    if said and not _CLAIMS.search(said) and numbers <= allowed:
+        result["agent_said_checked"] = True
+        return result
+    first = next((l for l in result.get("lines", []) if l["status"] == "insert"), None)
+    summary = f"{result.get('changed')} of {result.get('length')} entries changed."
+    if first:
+        summary += f" First insert: {first['place']['name']} ({first['note']})."
+    result["agent_said"] = summary
+    result["agent_said_checked"] = False
+    return result
 
 
 def _clean_text(v: str, low: int = 2) -> str:
@@ -136,15 +164,19 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         msgs = [f"{'.'.join(str(p) for p in e.get('loc', [])[1:])}: {e.get('msg', 'invalid')}" for e in exc.errors()]
         return JSONResponse({"detail": "; ".join(msgs)[:300]}, status_code=422)
 
-    limiter = RateLimiter(settings.rate_limit_per_minute, int(os.getenv("GLOBAL_LIMIT_PER_MINUTE", "240")))
-    # Only the entries added by our own proxies can be trusted; the left side of X-Forwarded-For is
-    # whatever the caller wrote. Cloud Run alone: 1. Behind Vercel's rewrite as well: 2.
-    hops = max(1, int(os.getenv("TRUSTED_PROXY_HOPS", "1")))
+    limiter = RateLimiter(settings.rate_limit_per_minute, int(os.getenv("GLOBAL_LIMIT_PER_MINUTE", "120")))
+    # The web app's server-side proxy sends the visitor's address with a shared secret. Anyone else
+    # is keyed by the last X-Forwarded-For entry, the one Cloud Run's front end appended itself.
+    proxy_secret = os.getenv("PROXY_SECRET", "")
 
     def client_key(request: Request) -> str:
+        if proxy_secret and request.headers.get("x-redline-proxy") == proxy_secret:
+            visitor = request.headers.get("x-redline-client", "").strip()
+            if visitor:
+                return f"web:{visitor[:64]}"
         parts = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
         if parts:
-            return parts[-hops] if len(parts) >= hops else parts[0]
+            return parts[-1]
         return request.client.host if request.client else "?"
 
     def guard(request: Request) -> None:
@@ -162,7 +194,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
     def labelled(result: dict[str, Any]) -> dict[str, Any]:
         if result.get("status") == "ok":
-            result["cached"] = bool(result.get("cached")) and result.get("cache_age_seconds", 0) >= CACHED_LABEL_AFTER_S
+            result["cached"] = cached_label(result)
         return result
 
     @app.get("/api/health")
@@ -192,7 +224,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         except asyncio.TimeoutError as exc:
             raise HTTPException(504, "Qloo is slow right now. Try again in a moment.") from exc
         except QlooError as exc:
-            raise HTTPException(503, "Qloo isn't answering right now and there's no saved answer for this guest.") from exc
+            raise qloo_http_error(exc) from exc
 
     @app.post("/api/agent")
     async def agent(body: AgentBody, request: Request) -> dict[str, Any]:
@@ -201,18 +233,24 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         from .agent import run_agent
 
         try:
-            return labelled(
-                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget), timeout=55)
-            )
+            return guard_agent_text(labelled(
+                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget), timeout=52)
+            ))
         except asyncio.TimeoutError as exc:
             raise HTTPException(504, "The agent took too long. Try the form instead.") from exc
         except QlooError as exc:
-            raise HTTPException(503, "Qloo isn't answering right now.") from exc
+            raise qloo_http_error(exc) from exc
         except Exception as exc:  # noqa: BLE001 — model/ADK trouble must not surface as a bare 500
             raise HTTPException(503, f"The agent couldn't run: {exc.__class__.__name__}") from exc
 
     app.mount("/mcp", mcp.streamable_http_app())
     return app
+
+
+def qloo_http_error(exc: QlooError) -> HTTPException:
+    if exc.status is not None and 400 <= exc.status < 500 and exc.status != 429:
+        return HTTPException(422, "Qloo couldn't use one of these favourites. Try a shorter or different name.")
+    return HTTPException(503, "Qloo isn't answering right now and there's no saved answer for this guest.")
 
 
 app = create_app() if __name__ != "__main__" else None  # uvicorn app.api:app

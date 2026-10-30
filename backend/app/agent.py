@@ -15,7 +15,7 @@ from google.genai import types
 
 from . import redline as rl
 from .config import Settings
-from .qloo import start_trace
+from .qloo import QlooError, start_trace
 from .resolve import Clarify, Entity, NotFound, resolve_interest
 from .service import CITIES, Redliner, check_city
 
@@ -117,23 +117,37 @@ def build_tools(ws: Workspace):
     return [resolve_interest_tool, default_list, taste_places, redline, explain_place]
 
 
-def adk_model(settings: Settings):
+def adk_model(settings: Settings, model: str | None = None):
+    model = model or settings.llm_model
     if settings.llm_provider == "gemini":
-        return settings.llm_model
+        return model
     if settings.llm_provider == "anthropic":
         from google.adk.models.lite_llm import LiteLlm
 
-        return LiteLlm(model=f"anthropic/{settings.llm_model}")
+        return LiteLlm(model=f"anthropic/{model}")
     raise RuntimeError("no LLM provider configured for the agent")
 
 
 async def run_agent(redliner: Redliner, settings: Settings, text: str, city: str, budget: int) -> dict[str, Any]:
-    """Let the agent drive the service. Returns the redline plus the agent's own tool trace."""
+    """Let the agent drive the service; if the main model fails before any tool ran, try the fallback."""
+    try:
+        return await _run(redliner, settings, settings.llm_model, text, city, budget)
+    except _ModelFailed:
+        if not settings.llm_fallback_model:
+            raise
+        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget)
+
+
+class _ModelFailed(RuntimeError):
+    pass
+
+
+async def _run(redliner: Redliner, settings: Settings, model: str, text: str, city: str, budget: int) -> dict[str, Any]:
     trace = start_trace()
     ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5)
     agent = LlmAgent(
         name="redline_concierge",
-        model=adk_model(settings),
+        model=adk_model(settings, model),
         instruction=INSTRUCTION,
         tools=build_tools(ws),
     )
@@ -141,18 +155,25 @@ async def run_agent(redliner: Redliner, settings: Settings, text: str, city: str
     session = await runner.session_service.create_session(app_name="redline", user_id="web")
     prompt = f"Hotel city: {ws.city}\nGuest: {text}"
     final = ""
-    async for event in runner.run_async(
-        user_id="web",
-        session_id=session.id,
-        new_message=types.Content(role="user", parts=[types.Part(text=prompt)]),
-    ):
-        if event.is_final_response() and event.content and event.content.parts:
-            final = "".join(p.text or "" for p in event.content.parts)
-    base = {"agent_said": final.strip(), "trace": ws.log}
+    try:
+        async for event in runner.run_async(
+            user_id="web",
+            session_id=session.id,
+            new_message=types.Content(role="user", parts=[types.Part(text=prompt)]),
+        ):
+            if event.is_final_response() and event.content and event.content.parts:
+                final = "".join(p.text or "" for p in event.content.parts)
+    except QlooError:
+        raise
+    except Exception as exc:  # noqa: BLE001 — model trouble before any tool ran is worth one retry
+        if not ws.log:
+            raise _ModelFailed(str(exc)) from exc
+        raise
+    base = {"agent_said": final.strip(), "trace": ws.log, "city": ws.city}
     if ws.issues:
         return {"status": "needs_input", "issues": ws.issues,
                 "resolved": [e.public() for e in ws.entities.values()], **base}
     if ws.result is None:
         return {"status": "error", **base}
-    return {"status": "ok", **ws.result, "cached": trace.cached,
+    return {"status": "ok", **ws.result, "cached": trace.cached, "fallback": bool(trace.notes),
             "cache_age_seconds": round(trace.cache_age_seconds), "live_calls": trace.live_calls, **base}

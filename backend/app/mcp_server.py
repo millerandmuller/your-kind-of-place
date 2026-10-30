@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from .redline import BUDGETS
+from .service import cached_label
 from .service import CITIES, InterestIn, Redliner, UnknownCity
 
 
@@ -59,6 +60,7 @@ def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
             ],
             "final": [p["name"] for p in result["final"]],
             "label": "Aggregate taste affinity from Qloo, not a review.",
+            "cached": cached_label(result),
         }
 
     return mcp
