@@ -205,6 +205,17 @@ export default function HowDE() {
         oder Ortsbeschreibung).
       </p>
 
+      <h2>Toronto und Montreal (die Kunden-Demo)</h2>
+      <p>
+        Die Kunden-Demo zeigt ein erfundenes Hotel, Montreonto, mit je einem Haus in Toronto und Montreal. Bevor sie diese
+        beiden Städte verwendete, bestanden beide einen Smoke-Test (je 10 Orte, alle mit Stadtteil; das Preisniveau der
+        Hausliste ist 2) und denselben Blindtest, vor dem Lauf festgelegt: 12 Paare gegensätzlicher Gäste mit kanadischen
+        Lieblingen, 6 pro Stadt, Restaurants &amp; Bars auf dem Preisniveau der Hausliste. Das separate Modell ordnete{" "}
+        <strong>12 von 12</strong> richtig zu. Die zwei Beispiel-Gäste je Stadt sind das Testpaar, dessen Gäste die wenigsten
+        Ergänzungen teilen (keine), gewählt nach einer vor dem Lauf festgelegten Regel. Es gelten dieselben Grenzen:
+        gegensätzliche Gäste, ein Sprachmodell als Bewerter, 12 Fälle.
+      </p>
+
       <h2>Was wir nicht behaupten</h2>
       <p className="limit">
         Passt zu diesem Gast, nicht ‚besser‘. Selbst ähnliche Geschmäcker bekommen unterschiedliche Listen, deshalb behaupten wir nichts über

@@ -205,6 +205,17 @@ export default function HowFR() {
         ou la description du lieu).
       </p>
 
+      <h2>Toronto et Montréal (la démo client)</h2>
+      <p>
+        La démo client montre un hôtel fictif, Montreonto, avec une maison à Toronto et une à Montréal. Avant de les utiliser,
+        les deux villes ont passé un test de base (10 lieux chacune, tous avec un quartier ; le niveau de prix de la liste
+        maison est 2) et le même test à l&apos;aveugle, fixé avant le passage : 12 paires de clients opposés aux favoris
+        canadiens, 6 par ville, restaurants et bars au niveau de prix de la liste maison. Le modèle séparé a vu juste dans{" "}
+        <strong>12 cas sur 12</strong>. Les deux clients d&apos;exemple par ville sont la paire du test dont les clients
+        partagent le moins d&apos;ajouts (aucun), choisie selon une règle fixée avant le passage. Les mêmes limites
+        s&apos;appliquent : clients opposés, un modèle de langage comme juge, 12 cas.
+      </p>
+
       <h2>Ce que nous n&apos;affirmons pas</h2>
       <p className="limit">
         Convient à ce client, pas « meilleur ». Même des goûts similaires obtiennent des listes différentes, c&apos;est pourquoi nous n&apos;affirmons rien sur

@@ -311,3 +311,112 @@ html[data-theme="night"] .own textarea, html[data-theme="night"] select { border
 }
 .theme-toggle { display: inline-flex; align-items: center; padding: 5px 9px; }
 .theme-toggle svg { display: block; }
+
+/* --- "Client demo" button: gold, top right ---------------------------------------------------- */
+.nav .links a.client-btn {
+  background: #d9a441; color: #0f2440; font-weight: 600; padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+}
+.nav .links a.client-btn:hover, .nav .links a.client-btn:focus-visible { color: #0f2440; box-shadow: 0 0 0 2px #0f244033; }
+/* On a phone the links take a second row under the name, so nothing runs off the screen. */
+@media (max-width: 480px) {
+  .nav { flex-wrap: wrap; row-gap: 8px; }
+  .nav .links { width: 100%; justify-content: space-between; gap: 4px; }
+  .nav .links a.client-btn { padding: 4px 10px; }
+  .nav .links a[href*="github.com"] { display: none; }
+}
+
+/* --- Montreonto Hotels (fictional), client demo only ------------------------------------------ */
+/* Contrast (WCAG AA, text on its card): light — navy 15.6:1, Lake Blue 4.6:1, Canadian Red 5.0:1 on white;
+   dark — cream 11.8:1, gold 5.9:1, light red 5.3:1, light lake blue 6.1:1 on the card navy. */
+.mt-root {
+  --mt-bg: #f7f1e3; --mt-card: #ffffff; --mt-ink: #0f2440; --mt-muted: #4a5a70; --mt-line: #0f24401f;
+  --mt-link: #3a7ca5; --mt-red: #d52b1e; --mt-strike: #d52b1e; --mt-insert: #3a7ca5; --mt-gold: #d9a441;
+  --mt-leaf: #d52b1e; --mt-word: #d52b1e; --mt-insert-bg: transparent;
+  --paper: var(--mt-bg); --ink: var(--mt-ink); --muted: var(--mt-muted); --line: var(--mt-line);
+  --glass: rgba(247, 241, 227, 0.985); --red: var(--mt-red);
+  --font-ui: var(--font-mt-ui), system-ui, sans-serif; --font-display: var(--font-mt-serif), Georgia, serif;
+  min-height: 100vh; background: var(--mt-bg); color: var(--mt-ink); font-family: var(--font-ui);
+}
+html[data-theme="night"] .mt-root {
+  --mt-bg: #0f2440; --mt-card: #16304f; --mt-ink: #f7f1e3; --mt-muted: #c3cbd6; --mt-line: #f7f1e31f;
+  --mt-link: #8cbfe0; --mt-strike: #ff7a6e; --mt-insert: #d9a441; --mt-leaf: #d9a441; --mt-word: #ff7a6e;
+  --mt-insert-bg: #d9a44114;
+  --glass: rgba(15, 36, 64, 0.985);
+}
+.client-page { max-width: 1180px; }
+.mt-stage { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 56px; align-items: start; padding-top: 24px; }
+.mt-intro { padding-top: 40px; max-width: 520px; }
+.mt-emblem { display: inline-grid; justify-items: center; gap: 6px; color: var(--mt-leaf); }
+.mt-emblem-word, .mt-brand { color: var(--mt-word); font-size: 12px; letter-spacing: 0.16em; font-weight: 600; }
+.mt-wordmark { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: 0.06em; margin: 22px 0 6px; line-height: 1.05; }
+.mt-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--mt-muted); margin: 0 0 22px; font-weight: 600; }
+.mt-lede { font-size: 1.08rem; line-height: 1.55; margin: 0 0 14px; }
+.mt-honest { font-size: 0.82rem; color: var(--mt-muted); margin: 0; padding-left: 10px; border-left: 2px solid var(--mt-gold); }
+
+.mt-phone {
+  width: 400px; height: min(820px, calc(100vh - 110px)); min-height: 640px; position: sticky; top: 84px; border-radius: 54px; padding: 14px; background: #0b1626;
+  box-shadow: 0 0 0 2px #2a3a52, 0 40px 80px -40px #0f244099; display: flex; flex-direction: column; overflow: hidden;
+}
+.mt-phone .mt-status {
+  display: flex; justify-content: space-between; align-items: center; padding: 12px 26px 6px; font-weight: 600; font-size: 15px;
+  background: var(--mt-bg); color: var(--mt-ink); border-radius: 40px 40px 0 0;
+}
+.mt-status-icons { display: inline-flex; gap: 6px; align-items: center; }
+.mt-screen {
+  flex: 1; overflow-y: auto; background: var(--mt-bg); color: var(--mt-ink); border-radius: 0 0 40px 40px;
+  padding: 6px 16px 0; display: flex; flex-direction: column; scrollbar-width: thin;
+}
+.mt-top { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 10px; }
+.mt-brand { display: inline-flex; align-items: center; gap: 6px; }
+.mt-brand .leaf { color: var(--mt-leaf); }
+.mt-langs, .mt-cities, .mt-tabs { display: flex; }
+.mt-langs button, .mt-cities button, .mt-tabs button, .mt-guests button { all: unset; cursor: pointer; box-sizing: border-box; font-family: var(--font-ui); }
+.mt-langs button { font-size: 12px; letter-spacing: 0.08em; padding: 3px 7px; color: var(--mt-muted); font-weight: 600; }
+.mt-langs button[aria-pressed="true"] { color: var(--mt-ink); box-shadow: inset 0 -2px 0 var(--mt-gold); }
+.mt-cities { background: var(--mt-card); border: 1px solid var(--mt-line); border-radius: 999px; padding: 3px; }
+.mt-cities button { flex: 1; text-align: center; padding: 7px 0; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--mt-muted); }
+.mt-cities button[aria-pressed="true"] { background: var(--mt-red); color: #fff; }
+.mt-guests { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.mt-guests button {
+  display: grid; gap: 2px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--mt-line); background: var(--mt-card);
+  font-size: 12px; color: var(--mt-muted);
+}
+.mt-guests button b { font-size: 13px; color: var(--mt-ink); }
+.mt-guests button[aria-pressed="true"] { border-color: var(--mt-gold); box-shadow: inset 0 0 0 1px var(--mt-gold); }
+.mt-langs button:focus-visible, .mt-cities button:focus-visible, .mt-tabs button:focus-visible, .mt-guests button:focus-visible { outline: 2px solid var(--mt-link); outline-offset: 2px; }
+.mt-sample { font-size: 11px; color: var(--mt-muted); margin: 6px 2px 0; }
+.mt-welcome { font-family: var(--font-display); font-weight: 600; font-size: 1.45rem; line-height: 1.15; margin: 16px 0 4px; }
+.mt-room { font-size: 13px; color: var(--mt-muted); margin: 0 0 12px; }
+.mt-houselist { font-size: 12px; color: var(--mt-muted); margin: 6px 2px 8px; line-height: 1.45; }
+.mt-msg { font-size: 14px; color: var(--mt-muted); padding: 20px 0; }
+.mt-list { list-style: none; margin: 0 0 12px; padding: 0; background: var(--mt-card); border-radius: 14px; border: 1px solid var(--mt-line); }
+.mt-line { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-top: 1px solid var(--mt-line); }
+.mt-line:first-child { border-top: 0; }
+.mt-line-body { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.mt-name { font-family: var(--font-display); font-size: 1.02rem; line-height: 1.25; }
+.mt-meta { font-size: 12px; color: var(--mt-muted); }
+.mt-note { font-family: var(--font-display); font-style: italic; font-size: 13px; line-height: 1.35; }
+.mt-line.strike .mt-name { color: var(--mt-strike); text-decoration: line-through; text-decoration-thickness: 2px; }
+.mt-line.strike .mt-note { color: var(--mt-strike); }
+.mt-line.insert { background: var(--mt-insert-bg); box-shadow: inset 3px 0 0 var(--mt-gold); }
+.mt-line.insert .mt-name { color: var(--mt-insert); font-weight: 600; }
+.mt-line.insert .mt-note { color: var(--mt-insert); }
+.mt-root .maplink { color: var(--mt-link); border-color: currentColor; font-family: var(--font-ui); margin-top: 2px; }
+.mt-root .maplink:hover, .mt-root .maplink:focus-visible { color: var(--mt-ink); }
+.mt-tabs {
+  position: sticky; bottom: 0; margin: auto -16px 0; padding: 8px 12px 18px; gap: 6px; background: var(--mt-bg);
+  border-top: 1px solid var(--mt-line);
+}
+.mt-tabs button { flex: 1; text-align: center; padding: 9px 0; font-size: 13px; font-weight: 600; color: var(--mt-muted); border-radius: 10px; }
+.mt-tabs button[aria-pressed="true"] { color: var(--mt-ink); background: var(--mt-card); box-shadow: inset 0 -2px 0 var(--mt-gold); }
+
+/* On a phone the mockup goes: the guest view fills the screen, the hotel text follows. */
+@media (max-width: 900px) {
+  .mt-stage { grid-template-columns: 1fr; gap: 28px; padding-top: 12px; }
+  .mt-phone { order: -1; width: auto; height: auto; min-height: 0; position: static; border-radius: 0; padding: 0; background: none; box-shadow: none; overflow: visible; }
+  .mt-phone .mt-status { display: none; }
+  .mt-screen { border-radius: 0; padding: 4px 0 0; overflow: visible; }
+  .mt-tabs { margin: 0 -20px; padding: 8px 20px 14px; }
+  .mt-intro { padding-top: 0; }
+  .mt-wordmark { margin-top: 12px; }
+}

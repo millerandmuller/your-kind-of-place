@@ -65,6 +65,9 @@ export default function Nav({ lang: serverLang }: { lang?: Lang }) {
             </svg>
           </span>
         </button>
+        <Link href="/client" className="client-btn">
+          {t("Client demo")}
+        </Link>
       </span>
     </nav>
   );

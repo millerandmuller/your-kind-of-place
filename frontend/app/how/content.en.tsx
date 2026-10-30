@@ -205,6 +205,17 @@ export default function HowEN() {
         or place description).
       </p>
 
+      <h2>Toronto and Montreal (the client demo)</h2>
+      <p>
+        The client demo shows a fictional hotel, Montreonto, with one house in Toronto and one in Montreal. Before it used
+        these two cities, both passed a smoke test (10 places each, all with a neighbourhood; the house list&apos;s price level
+        is 2) and the same blind test, written down before the run: 12 pairs of opposite guests with Canadian favourites, 6
+        per city, restaurants &amp; bars at the house list&apos;s price level. The separate model matched{" "}
+        <strong>12 of 12</strong>. The two sample guests per city are the test pair whose guests share the fewest additions
+        (none), picked by a rule written down before the run. The same limits apply: opposite guests, a language model as
+        judge, 12 cases.
+      </p>
+
       <h2>What we don&apos;t claim</h2>
       <p className="limit">
         Fits this guest, not &apos;better&apos;. Even similar tastes get different lists, so we don&apos;t claim anything about

@@ -32,7 +32,7 @@ def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
     ) -> dict[str, Any]:
         """Edit a hotel's list of restaurants and bars for one guest.
 
-        city: one of London, San Francisco, New York, Austin.
+        city: one of London, San Francisco, New York, Austin, Toronto, Montreal.
         interests: 1-3 things the guest loves (a band, show, film, brand or game).
         budget: how many entries may change (3, 5 or 10).
         hotel_list: optional, the hotel's own list (up to 10 names, one place each). Each name is

@@ -44,6 +44,41 @@ export const DICT: Record<string, { de: string; fr: string }> = {
   },
 
   Map: { de: "Karte", fr: "Carte" },
+
+  // Client demo: Montreonto Hotels (fictional)
+  "Client demo": { de: "Kunden-Demo", fr: "Démo client" },
+  "A fictional hotel · created for this demo": {
+    de: "Ein fiktives Hotel · für diese Demo erfunden",
+    fr: "Un hôtel fictif · créé pour cette démo",
+  },
+  "Montreonto {city}, Room {room}: what a guest gets on their phone after check-in. The hotel's list, edited for this guest. Tap a place to open it in Maps.": {
+    de: "Montreonto {city}, Zimmer {room}: was ein Gast nach dem Check-in auf dem Handy bekommt. Die Liste des Hotels, für diesen Gast bearbeitet. Tippen Sie auf einen Ort, um ihn in Maps zu öffnen.",
+    fr: "Montreonto {city}, chambre {room} : ce qu'un client reçoit sur son téléphone après l'arrivée. La liste de l'hôtel, modifiée pour ce client. Touchez un lieu pour l'ouvrir dans Maps.",
+  },
+  "Places, notes and tags are live Qloo results. Montreonto is fictional.": {
+    de: "Orte, Notizen und Tags sind echte Qloo-Ergebnisse. Montreonto ist erfunden.",
+    fr: "Les lieux, notes et tags sont des résultats Qloo en direct. Montreonto est fictif.",
+  },
+  "A guest's phone": { de: "Das Handy eines Gastes", fr: "Le téléphone d'un client" },
+  Language: { de: "Sprache", fr: "Langue" },
+  Lists: { de: "Listen", fr: "Listes" },
+  "Sample guests, chosen to show contrast.": {
+    de: "Beispiel-Gäste, ausgewählt, um Unterschiede zu zeigen.",
+    fr: "Clients d'exemple, choisis pour montrer le contraste.",
+  },
+  "Welcome to Montreonto {city}, {name}": { de: "Willkommen im Montreonto {city}, {name}", fr: "Bienvenue au Montreonto {city}, {name}" },
+  "Room {room}": { de: "Zimmer {room}", fr: "Chambre {room}" },
+  "Loves {list}": { de: "Mag {list}", fr: "Aime {list}" },
+  "Montreonto's house list (stands in: the city's top places with no taste signal)": {
+    de: "Hausliste des Montreonto (Platzhalter: die Top-Orte der Stadt ohne Geschmackssignal)",
+    fr: "Liste maison du Montreonto (à la place : les meilleurs lieux de la ville, sans signal de goût)",
+  },
+  "Couldn't load the list. Try again in a moment.": {
+    de: "Die Liste ließ sich nicht laden. Bitte gleich noch einmal versuchen.",
+    fr: "Impossible de charger la liste. Réessayez dans un instant.",
+  },
+  "Loading the list…": { de: "Liste wird geladen …", fr: "Chargement de la liste…" },
+  "After dark": { de: "Am Abend", fr: "Le soir" },
   "Switch to day": { de: "Zur Tagansicht wechseln", fr: "Passer en mode jour" },
   "Switch to night": { de: "Zur Nachtansicht wechseln", fr: "Passer en mode nuit" },
 
