@@ -7,6 +7,8 @@ import {
   BUDGETS,
   CITIES,
   DEFAULT_LABEL,
+  HOTEL_LABEL,
+  SAMPLE_LISTS,
   finalList,
   guestName,
   LABEL,
@@ -20,10 +22,13 @@ import {
   type TraceStep,
 } from "@/lib/api";
 
-type Tab = "default" | "g1" | "g2" | "own";
+type Tab = "default" | "g1" | "g2" | "both" | "own";
 
 function meta(p: Place): string {
-  return [p.kind, p.neighborhood].filter(Boolean).join(" · ");
+  if (p.in_qloo === false) return "Not found in Qloo · kept as is";
+  const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
+  if (p.typed) return `${base} · listed as “${p.typed}”`;
+  return base;
 }
 
 function pairLabel(p: DemoPair): string {
@@ -98,7 +103,7 @@ export default function Redline() {
     setTab(t);
   };
 
-  const current = tab === "default" ? results.g1 : results[tab];
+  const current = tab === "default" ? results.g1 : tab === "both" ? undefined : results[tab];
   const rej = useMemo(() => rejected[tab] ?? new Set<string>(), [rejected, tab]);
   const toggle = (strikeId: string, reject: boolean) =>
     setRejected((r) => {
@@ -175,7 +180,8 @@ export default function Redline() {
         <TabButton id="default" tab={tab} choose={choose} kicker={pair ? `Hotel in ${pair.city}` : "Hotel"} title="Default list" />
         <TabButton id="g1" tab={tab} choose={choose} kicker="Guest 1 checks in" title={pair ? guestName(pair.guest1) : "…"} />
         <TabButton id="g2" tab={tab} choose={choose} kicker="Guest 2, same hotel" title={pair ? guestName(pair.guest2) : "…"} />
-        <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest" />
+        <TabButton id="both" tab={tab} choose={choose} kicker="Compare" title="Guest 1 | Guest 2" />
+        <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest (and list)" />
       </div>
 
       {error && (
@@ -207,7 +213,11 @@ export default function Redline() {
         />
       )}
 
-      {(tab !== "own" || results.own) && (
+      {tab === "both" && g1 && g2 && (
+        <SideBySide a={g1} b={g2} ra={rejected.g1 ?? none} rb={rejected.g2 ?? none} share={shareCount ?? 0} />
+      )}
+
+      {tab !== "both" && (tab !== "own" || results.own) && (
         <section className={`sheet${animate ? " animate" : ""}`} key={`${tab}-${current?.city}-${current?.budget}-${guestName(current?.guest ?? [])}`}>
           <div className="sheet-head">
             <div>
@@ -228,7 +238,10 @@ export default function Redline() {
               )}
             </div>
           </div>
-          <p className="label">{tab === "default" ? DEFAULT_LABEL : `${DEFAULT_LABEL}. Red: struck for this guest. Green: added for this guest.`}</p>
+          <p className="label">
+            {current?.source === "hotel" ? HOTEL_LABEL : DEFAULT_LABEL}
+            {tab === "default" ? "" : ". Red: struck for this guest. Green: added for this guest."}
+          </p>
 
           {!current ? (
             <div aria-busy="true" aria-label="Loading">
@@ -280,6 +293,60 @@ export default function Redline() {
         <Link href="/how">How this works</Link>
       </p>
     </main>
+  );
+}
+
+function SideBySide({
+  a,
+  b,
+  ra,
+  rb,
+  share,
+}: {
+  a: RedlineResult;
+  b: RedlineResult;
+  ra: Set<string>;
+  rb: Set<string>;
+  share: number;
+}) {
+  const fa = finalList(a, ra);
+  const fb = finalList(b, rb);
+  const inB = new Set(fb.map((p) => p.id));
+  const inA = new Set(fa.map((p) => p.id));
+  const col = (r: RedlineResult, list: Place[], other: Set<string>, title: string) => {
+    const added = new Set(r.lines.filter((l) => l.status === "insert").map((l) => l.place.id));
+    return (
+      <div className="col">
+        <h3>{title}</h3>
+        <span className="for">loves {guestName(r.guest)}</span>
+        <ol className="list compact">
+          {list.map((p, i) => (
+            <li key={p.id} className={`row ${added.has(p.id) ? "insert" : ""}`}>
+              <span className="num">{i + 1}</span>
+              <div className="place">
+                <div className="name">{p.name}</div>
+                <div className="meta">{other.has(p.id) ? "on both lists" : meta(p)}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    );
+  };
+  return (
+    <section className="sheet animate" aria-label="Guest 1 and Guest 2 side by side">
+      <div className="sheet-head">
+        <h2>Same hotel in {a.city}, two guests</h2>
+        <span className="share">
+          Guest 1 and Guest 2 share {share} of {a.length}
+        </span>
+      </div>
+      <p className="label">Green: added for that guest. Each list as the guest would get it (rejected changes undone).</p>
+      <div className="cols">
+        {col(a, fa, inB, "Guest 1")}
+        {col(b, fb, inA, "Guest 2")}
+      </div>
+    </section>
   );
 }
 
@@ -438,6 +505,7 @@ function OwnGuest({
   const [busy, setBusy] = useState<"form" | "agent" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [text, setText] = useState("");
+  const [hotelText, setHotelText] = useState("");
   const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[] } | null>(null);
 
   const submit = useCallback(
@@ -455,7 +523,12 @@ function OwnGuest({
       setAgent(null);
       onStart();
       try {
-        const r = await api.redline(city, interests, budget);
+        const hotelList = hotelText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .slice(0, 10);
+        const r = await api.redline(city, interests, budget, hotelList);
         if (r.status === "ok") onResult(r);
         else setIssues((r as NeedsInput).issues);
       } catch (e) {
@@ -464,7 +537,7 @@ function OwnGuest({
         setBusy(null);
       }
     },
-    [names, ids, city, budget, onStart, onResult],
+    [names, ids, city, budget, hotelText, onStart, onResult],
   );
 
   const runAgent = async () => {
@@ -521,6 +594,26 @@ function OwnGuest({
 
   return (
     <section className="sheet own noprint" aria-label="Your guest">
+      <details className="hotel-list" open={hotelText.length > 0}>
+        <summary>Use your hotel&apos;s own list (optional)</summary>
+        <div className="fields">
+          <textarea
+            aria-label="Your hotel's list, one place per line"
+            placeholder={"One restaurant or bar per line, up to 10.\nLeave empty to use the city's default list."}
+            value={hotelText}
+            rows={6}
+            onChange={(e) => setHotelText(e.target.value)}
+          />
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => setHotelText((SAMPLE_LISTS[city] ?? []).join("\n"))}
+          >
+            Sample {city} list
+          </button>
+        </div>
+        <small className="label">Each line is looked up in Qloo within 25 km of {city}. Names it can&apos;t find stay on the list unmarked.</small>
+      </details>
       <div className="fields">
         <label className="label" style={{ display: "grid", gap: 4, margin: 0 }}>
           Hotel city

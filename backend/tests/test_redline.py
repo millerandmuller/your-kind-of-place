@@ -191,3 +191,43 @@ def test_places_far_from_the_city_centre_are_dropped():
     niagara = place("n", lat=43.09, lon=-79.06)
     white_plains = place("w", lat=41.03, lon=-73.76)
     assert [p["entity_id"] for p in in_town("New York", [manhattan, niagara, white_plains])] == ["m"]
+
+
+def test_chains_are_dropped_by_name():
+    hard_rock = place("h", "restaurant:american")
+    hard_rock["name"] = "Hard Rock Cafe | Berlin"
+    express = place("p", "restaurant:pizza")
+    express["name"] = "PizzaExpress"
+    assert rl.dining([hard_rock, express, place("ok")]) == [place("ok")]
+
+
+def test_unknown_hotel_list_lines_are_never_struck():
+    default = [place("1"), {"entity_id": "line:1", "name": "Chez Nous", "properties": {}}, place("3")]
+    out = rl.redline(default, [place("x1"), place("x2"), place("x3")], NAMES, budget=10, match_ids=set())
+    struck = [l["place"]["id"] for l in out["lines"] if l["status"] == "strike"]
+    assert struck == ["1", "3"]
+    kept = [l for l in out["lines"] if l["status"] == "keep"][0]["place"]
+    assert kept["name"] == "Chez Nous" and kept["in_qloo"] is False
+
+
+def hotel_qloo(req: httpx.Request) -> httpx.Response:
+    if req.url.path == "/search" and "place" in req.url.params.get("types", ""):
+        q = req.url.params["query"]
+        if q == "Dishoom":
+            return httpx.Response(200, json={"results": [
+                {**place("far", lat=55.95, lon=-3.19), "name": "Dishoom Edinburgh"},
+                {**place("dk"), "name": "Dishoom King's Cross"}]})
+        return httpx.Response(200, json={"results": []})
+    return fake_qloo(req)
+
+
+def test_hotel_list_is_matched_in_town_and_redlined(tmp_path):
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(hotel_qloo))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
+                                                 "hotel_list": ["Dishoom", "Chez Nous"]}).json()
+        assert body["source"] == "hotel"
+        assert [p["name"] for p in body["default"]] == ["Dishoom King's Cross", "Chez Nous"]
+        assert body["default"][0]["typed"] == "Dishoom" and body["default"][1]["in_qloo"] is False
+        assert body["changed"] == 1  # only the matched line can be struck

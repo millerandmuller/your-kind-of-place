@@ -85,6 +85,17 @@ class RedlineBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
+    hotel_list: list[str] | None = Field(default=None, max_length=10)  # the hotel's own list, one place per line
+
+    @field_validator("hotel_list")
+    @classmethod
+    def _lines(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        lines = [_clean_text(x) for x in v if x.strip()]
+        if any(len(x) > 120 for x in lines):
+            raise ValueError("each line of the hotel's list must be under 120 characters")
+        return lines or None
 
 
 class AgentBody(BaseModel):
@@ -216,7 +227,8 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         try:
             return labelled(
                 await asyncio.wait_for(
-                    r.run(body.city, [InterestIn(i.name, i.id) for i in body.interests], body.budget), timeout=45
+                    r.run(body.city, [InterestIn(i.name, i.id) for i in body.interests], body.budget, body.hotel_list),
+                    timeout=45,
                 )
             )
         except UnknownCity as exc:

@@ -25,7 +25,16 @@ export default function How() {
         That tag also returns hotels, department stores, arenas and fast-food chains. A concierge doesn&apos;t hand those out, so
         both lists keep only sit-down food and drink by Qloo&apos;s <code>primary_genre</code> (restaurants, bars, pubs, cafés;
         no fast food, burger, ice-cream or donut shops, delivery or food courts) and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for
-        “New York City”). The top 10 that remain are the default list. Chains with a sit-down genre (a Hard Rock Cafe, say) stay if Qloo ranks them.
+        “New York City”). Well-known chains (Hard Rock Cafe, PizzaExpress, Starbucks and similar, a fixed list
+        in the code) are dropped too. The top 10 that remain are the default list.
+      </p>
+
+      <h2>1b. Or the hotel&apos;s own list</h2>
+      <p>
+        Under “Your guest (and list)” a concierge can paste the hotel&apos;s own list, up to 10 lines. Each line is looked up with{" "}
+        <code>GET /search?types=urn:entity:place</code> and matched to the first place within 25 km whose name contains the
+        line (an exact name wins), so “Dishoom” becomes “Dishoom King&apos;s Cross” and the screen says “listed as ‘Dishoom’”.
+        Lines Qloo can&apos;t find stay on the list as typed, unmarked, and are never struck.
       </p>
 
       <h2>2. The guest</h2>
@@ -121,7 +130,7 @@ export default function How() {
       </p>
 
       <h2>Coming next</h2>
-      <p>Paste the hotel&apos;s own list instead of the city default.</p>
+      <p>Pick the right branch when a name matches several (today the first one in town is taken and shown).</p>
     </main>
   );
 }

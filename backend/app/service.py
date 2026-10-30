@@ -10,7 +10,8 @@ from typing import Any
 
 from . import redline as rl
 from .qloo import QlooClient, start_trace
-from .resolve import Clarify, Entity, NotFound, resolve_interest
+from .qloo import PLACE as PLACE_TYPE
+from .resolve import Clarify, Entity, NotFound, norm, resolve_interest
 
 CITIES = ("London", "San Francisco", "New York", "Austin", "Berlin")
 # What Qloo is asked for: plain "New York" also matches places across New York State.
@@ -26,6 +27,7 @@ CENTRES = {
 MAX_KM = 25
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"
 MAX_INTERESTS = 3
+MAX_LIST = 10
 # A saved answer younger than this is just the same visit; older ones are labelled "cached result".
 CACHED_LABEL_AFTER_S = 600
 
@@ -93,6 +95,31 @@ class Redliner:
         places = await self.qloo.places(CITY_QUERY.get(city, city), take=50)
         return in_town(city, rl.dining(places))[: self.length]
 
+    async def hotel_list(self, city: str, lines: list[str]) -> list[dict[str, Any]]:
+        """Match each line of the hotel's own list to a Qloo place in town, in the hotel's order.
+
+        A line matches the first in-town search result whose name contains the typed name (so
+        "Dishoom" → "Dishoom King's Cross"; the typed text is kept and shown). Lines without a match
+        stay on the list as typed and are never struck.
+        """
+        city = check_city(city)
+        clean = [" ".join(l.split()) for l in lines if l.strip()][:MAX_LIST]
+        found = await asyncio.gather(*[self.qloo.search(l, PLACE_TYPE, limit=10) for l in clean])
+        out: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, (line, results) in enumerate(zip(clean, found)):
+            want = norm(line)
+            near = [r for r in in_town(city, results) if want and r["entity_id"] not in seen]
+            match = next((r for r in near if norm(r.get("name", "")) == want), None) or next(
+                (r for r in near if want in norm(r.get("name", ""))), None
+            )
+            if match:
+                seen.add(match["entity_id"])
+                out.append({**match, "typed": line if norm(match["name"]) != want else None})
+            else:
+                out.append({"entity_id": f"{rl.UNMATCHED}{i}", "name": line, "properties": {}, "typed": line})
+        return out
+
     async def taste_places(self, city: str, ids: list[str]) -> tuple[list[dict[str, Any]], set[str]]:
         """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50)."""
         city = check_city(city)
@@ -116,23 +143,27 @@ class Redliner:
                 issues.append({"kind": "not_found", "field": f.field, "query": f.query, "message": f.message})
         return entities, issues
 
-    async def edit(self, city: str, guests: list[Entity], budget: int) -> dict[str, Any]:
+    async def edit(
+        self, city: str, guests: list[Entity], budget: int, hotel_lines: list[str] | None = None
+    ) -> dict[str, Any]:
         city = check_city(city)
         names = {g.id: g.name for g in guests}
-        default, (taste, match_ids) = await asyncio.gather(
-            self.default_list(city), self.taste_places(city, [g.id for g in guests])
-        )
+        base = self.hotel_list(city, hotel_lines) if hotel_lines else self.default_list(city)
+        default, (taste, match_ids) = await asyncio.gather(base, self.taste_places(city, [g.id for g in guests]))
         result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids)
         return {
             "match_count": len(match_ids),
             "city": city,
             "guest": [g.public() for g in guests],
             "budget": budget,
+            "source": "hotel" if hotel_lines else "default",
             "default": [rl.public_place(p) for p in default],
             **result,
         }
 
-    async def run(self, city: str, interests: list[InterestIn], budget: int = 5) -> dict[str, Any]:
+    async def run(
+        self, city: str, interests: list[InterestIn], budget: int = 5, hotel_lines: list[str] | None = None
+    ) -> dict[str, Any]:
         """Resolve (ask when unclear) → default list → taste matches → redline."""
         city = check_city(city)
         trace = start_trace()
@@ -143,7 +174,7 @@ class Redliner:
             return {"status": "needs_input", "issues": issues, "resolved": [e.public() for e in entities]}
         if not entities:
             return {"status": "needs_input", "issues": [], "resolved": []}
-        out = await self.edit(city, entities, budget)
+        out = await self.edit(city, entities, budget, hotel_lines)
         return {
             "status": "ok",
             **out,

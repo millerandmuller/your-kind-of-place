@@ -35,6 +35,16 @@ NOT_A_RECOMMENDATION = {
 # Airport lounges and terminal outlets: "Heathrow Airport", "Terminal 3 Nelson Rd".
 _AIRPORT = re.compile(r"\bairport\b|\bterminal\s*\d", re.I)
 
+# Chains a concierge wouldn't put on a hotel's list, matched by the start of the name.
+CHAINS = (
+    "hard rock cafe", "pizzaexpress", "pizza express", "starbucks", "mcdonald", "five guys", "bubba gump",
+    "planet hollywood", "rainforest cafe", "the cheesecake factory", "cheesecake factory", "nando's", "wagamama",
+    "hooters", "tgi friday", "olive garden", "shake shack", "pret a manger", "costa coffee", "le pain quotidien",
+    "dunkin", "chipotle", "subway", "domino's", "kfc", "burger king", "in-n-out", "applebee", "chili's",
+    "buffalo wild wings", "ihop", "denny's", "pizza hut", "papa john", "taco bell", "wendy's", "honest burgers",
+)
+UNMATCHED = "line:"  # entity id prefix for hotel-list lines Qloo doesn't know
+
 STRIKE_NOTE = "Not among this guest's top 50 taste matches"  # Qloo's page size; see match_count
 BUDGETS = (3, 5, 10)
 
@@ -49,13 +59,22 @@ def is_dining(place: dict[str, Any]) -> bool:
     genre = genre_of(place)
     if not genre or genre in NOT_A_RECOMMENDATION:
         return False
+    if is_chain(place):
+        return False
     props = place.get("properties") or {}
     if _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}"):
         return False  # lounges and terminal outlets aren't somewhere to send a guest
     return genre == "restaurant" or genre.startswith("restaurant:") or genre in DINING_EXTRA
 
 
+def is_chain(place: dict[str, Any]) -> bool:
+    name = str(place.get("name") or "").lower().replace("’", "'")
+    return name.startswith(CHAINS)
+
+
 def kind_label(place: dict[str, Any]) -> str:
+    if str(place.get("entity_id", "")).startswith(UNMATCHED):
+        return ""
     genre = genre_of(place)
     leaf = genre.split(":")[-1] if genre else "restaurant"
     label = leaf.replace("_", " ").replace("(us)", "").strip()
@@ -110,6 +129,8 @@ def public_place(place: dict[str, Any]) -> dict[str, Any]:
         "price_level": props.get("price_level"),
         "lat": loc.get("lat"),
         "lon": loc.get("lon"),
+        "typed": place.get("typed"),  # what the hotel's list said, when it was matched to a Qloo place
+        "in_qloo": not str(place.get("entity_id", "")).startswith(UNMATCHED),
     }
 
 
@@ -145,7 +166,10 @@ def redline(
     taste_set = match_ids if match_ids is not None else {p["entity_id"] for p in taste}
     default_ids = {p["entity_id"] for p in default}
 
-    strike_pool = [i for i, p in enumerate(default) if p["entity_id"] not in taste_set]
+    # Lines Qloo doesn't know can't be judged, so they are never struck.
+    strike_pool = [
+        i for i, p in enumerate(default) if p["entity_id"] not in taste_set and not p["entity_id"].startswith(UNMATCHED)
+    ]
     strike_pool.reverse()  # lowest on the list first
     insert_pool = [p for p in taste if p["entity_id"] not in default_ids]
     n = max(0, min(budget, len(strike_pool), len(insert_pool)))

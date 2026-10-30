@@ -8,6 +8,8 @@ export type Place = {
   price_level: number | null;
   lat: number | null;
   lon: number | null;
+  typed?: string | null;
+  in_qloo?: boolean;
 };
 
 export type Driver = { id: string; name: string; score: number };
@@ -34,6 +36,7 @@ export type Redline = {
   city: string;
   guest: Interest[];
   budget: number;
+  source?: "default" | "hotel";
   default: Place[];
   lines: Line[];
   final: Place[];
@@ -82,10 +85,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   demo: () => call<{ pairs: DemoPair[] }>("/api/demo"),
   cities: () => call<{ cities: string[] }>("/api/cities"),
-  redline: (city: string, interests: InterestIn[], budget: number) =>
+  redline: (city: string, interests: InterestIn[], budget: number, hotelList?: string[]) =>
     call<Redline | NeedsInput>("/api/redline", {
       method: "POST",
-      body: JSON.stringify({ city, interests, budget }),
+      body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   agent: (text: string, city: string, budget: number) =>
     call<Redline | NeedsInput | AgentError>("/api/agent", {
@@ -97,6 +100,14 @@ export const api = {
 export const CITIES = ["London", "San Francisco", "New York", "Austin", "Berlin"];
 export const BUDGETS = [3, 5, 10];
 export const LABEL = "Aggregate taste affinity from Qloo, not a review.";
+export const HOTEL_LABEL = "Your hotel's list: each line matched to a Qloo place in town; lines Qloo doesn't know are kept as is";
+export const SAMPLE_LISTS: Record<string, string[]> = {
+  London: ["The Wolseley", "Dishoom", "Hawksmoor", "Barrafina", "St. John", "Sketch", "Chiltern Firehouse", "Duck & Waffle", "Our Little Corner Bistro"],
+  "New York": ["Katz's Delicatessen", "Balthazar", "Carbone", "Russ & Daughters", "Le Bernardin", "Minetta Tavern", "The Dead Rabbit", "Via Carota"],
+  "San Francisco": ["Zuni Cafe", "Tartine Bakery", "House of Prime Rib", "Swan Oyster Depot", "State Bird Provisions", "Foreign Cinema", "Tosca Cafe"],
+  Austin: ["Franklin Barbecue", "Uchiko", "Odd Duck", "Matt's El Rancho", "Veracruz All Natural", "Jeffrey's", "The Driskill Bar"],
+  Berlin: ["Borchardt", "Katz Orange", "Markthalle Neun", "Curry 36", "Lode & Stijn", "Prater Garten", "Clärchens Ballhaus"],
+};
 export const DEFAULT_LABEL =
   "Default list: the city's top places with no taste signal (stands in for the hotel's list)";
 
