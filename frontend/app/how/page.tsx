@@ -24,8 +24,8 @@ export default function How() {
       <p>
         That tag also returns hotels, department stores, arenas and fast-food chains. A concierge doesn&apos;t hand those out, so
         both lists keep only sit-down food and drink by Qloo&apos;s <code>primary_genre</code> (restaurants, bars, pubs, cafés;
-        no fast food, burger, ice-cream or donut shops, delivery or food courts) and drop anything at an airport. The top 10
-        that remain are the default list. Chains with a sit-down genre (a Hard Rock Cafe, say) stay if Qloo ranks them.
+        no fast food, burger, ice-cream or donut shops, delivery or food courts) and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for
+        “New York City”). The top 10 that remain are the default list. Chains with a sit-down genre (a Hard Rock Cafe, say) stay if Qloo ranks them.
       </p>
 
       <h2>2. The guest</h2>
@@ -112,7 +112,7 @@ export default function How() {
       </p>
       <p>
         In the same test, two fans of nearly the same music also got very different lists. Qloo moves a lot with small
-        differences in taste, so Redline shows opposite guests side by side and says nothing about guests who are alike.
+        differences in taste, so Redline shows opposite guests one after the other and says nothing about guests who are alike.
       </p>
       <p>
         Accept and reject are only kept on your screen. Demo guests may be answered from saved Qloo results and are marked

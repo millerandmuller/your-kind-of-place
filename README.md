@@ -22,7 +22,7 @@ Cities: London, San Francisco, New York, Austin, Berlin.
 
 ### Dining filter
 
-Qloo's restaurant tag (`urn:tag:genre:place:restaurant`) also returns hotels, department stores, arenas and fast-food chains. A concierge doesn't recommend those, so both lists keep only sit-down food and drink by Qloo's `primary_genre` (restaurants, bars, pubs, cafés; no fast food, delivery or food courts). See `backend/app/redline.py`.
+Qloo's restaurant tag (`urn:tag:genre:place:restaurant`) also returns hotels, department stores, arenas and fast-food chains. A concierge doesn't recommend those, so both lists keep only sit-down food and drink by Qloo's `primary_genre` (restaurants, bars, pubs, cafés; no fast food, burger, ice-cream or donut shops, delivery or food courts), and drop anything at an airport or more than 25 km from the city centre (for New York, Qloo is asked for "New York City"). See `backend/app/redline.py` and `backend/app/service.py`.
 
 ## What we measured, and what we don't claim
 

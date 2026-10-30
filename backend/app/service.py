@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,17 @@ from .qloo import QlooClient, start_trace
 from .resolve import Clarify, Entity, NotFound, resolve_interest
 
 CITIES = ("London", "San Francisco", "New York", "Austin", "Berlin")
+# What Qloo is asked for: plain "New York" also matches places across New York State.
+CITY_QUERY = {"New York": "New York City"}
+# City centres (lat, lon); anything farther than MAX_KM is not a place a concierge sends a guest to.
+CENTRES = {
+    "London": (51.5072, -0.1276),
+    "San Francisco": (37.7749, -122.4194),
+    "New York": (40.7128, -74.0060),
+    "Austin": (30.2672, -97.7431),
+    "Berlin": (52.5200, 13.4050),
+}
+MAX_KM = 25
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"
 MAX_INTERESTS = 3
 # A saved answer younger than this is just the same visit; older ones are labelled "cached result".
@@ -33,6 +45,21 @@ def check_city(city: str) -> str:
         if c.lower() == city.strip().lower():
             return c
     raise UnknownCity(f"Pick one of: {', '.join(CITIES)}")
+
+
+def km_from_centre(city: str, place: dict[str, Any]) -> float | None:
+    loc = place.get("location") or {}
+    if "lat" not in loc or "lon" not in loc:
+        return None
+    lat1, lon1 = map(math.radians, CENTRES[city])
+    lat2, lon2 = math.radians(loc["lat"]), math.radians(loc["lon"])
+    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
+    return 2 * 6371 * math.asin(math.sqrt(h))
+
+
+def in_town(city: str, places: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Places within MAX_KM of the city centre; places without coordinates are dropped too."""
+    return [p for p in places if (d := km_from_centre(city, p)) is not None and d <= MAX_KM]
 
 
 def load_demo() -> dict[str, Any]:
@@ -62,13 +89,15 @@ class Redliner:
 
     async def default_list(self, city: str) -> list[dict[str, Any]]:
         """The city's top dining places with no taste signal: the stand-in for the hotel's list."""
-        places = await self.qloo.places(check_city(city), take=50)
-        return rl.dining(places)[: self.length]
+        city = check_city(city)
+        places = await self.qloo.places(CITY_QUERY.get(city, city), take=50)
+        return in_town(city, rl.dining(places))[: self.length]
 
     async def taste_places(self, city: str, ids: list[str]) -> tuple[list[dict[str, Any]], set[str]]:
         """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50)."""
-        raw = await self.qloo.places(check_city(city), ids, take=50, explain=True)
-        return rl.dining(raw), {p["entity_id"] for p in raw if p.get("entity_id")}
+        city = check_city(city)
+        raw = await self.qloo.places(CITY_QUERY.get(city, city), ids, take=50, explain=True)
+        return in_town(city, rl.dining(raw)), {p["entity_id"] for p in raw if p.get("entity_id")}
 
     async def resolve(self, interests: list[InterestIn]) -> tuple[list[Entity], list[dict[str, Any]]]:
         found = await asyncio.gather(

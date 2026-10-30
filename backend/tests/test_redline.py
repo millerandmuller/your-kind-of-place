@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from app import redline as rl
 from app.api import create_app, guard_agent_text
-from app.service import cached_label
+from app.service import cached_label, in_town
 from app.cache import FileCache
 from app.config import Settings
 from app.qloo import QlooClient
@@ -11,8 +11,8 @@ from app.resolve import Entity, pick
 from app.service import Redliner
 
 
-def place(pid, genre="restaurant", hood=None, expl=None):
-    p = {"entity_id": pid, "name": f"Place {pid}",
+def place(pid, genre="restaurant", hood=None, expl=None, lat=51.51, lon=-0.13):
+    p = {"entity_id": pid, "name": f"Place {pid}", "location": {"lat": lat, "lon": lon},
          "properties": {"primary_genre": f"urn:tag:genre:place:{genre}"}}
     if hood:
         p["properties"]["neighborhood"] = hood
@@ -184,3 +184,10 @@ def test_cached_label_only_when_nothing_was_live_or_qloo_failed():
     assert cached_label({"cached": True, "live_calls": 0, "cache_age_seconds": 5000})  # demo pair from the image
     assert not cached_label({"cached": True, "live_calls": 0, "cache_age_seconds": 30})  # same visit
     assert cached_label({"cached": True, "live_calls": 1, "cache_age_seconds": 30, "fallback": True})
+
+
+def test_places_far_from_the_city_centre_are_dropped():
+    manhattan = place("m", lat=40.758, lon=-73.985)
+    niagara = place("n", lat=43.09, lon=-79.06)
+    white_plains = place("w", lat=41.03, lon=-73.76)
+    assert [p["entity_id"] for p in in_town("New York", [manhattan, niagara, white_plains])] == ["m"]
