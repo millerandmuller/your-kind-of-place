@@ -229,6 +229,14 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         if not limiter.allow(client_key(request)):
             raise HTTPException(429, "Too many requests. Give it a minute.")
 
+    # Model runs cost money: a tighter budget per visitor and for the whole instance.
+    llm_limiter = RateLimiter(int(os.getenv("LLM_PER_MINUTE", "6")), int(os.getenv("LLM_GLOBAL_PER_MINUTE", "30")))
+
+    def llm_guard(request: Request) -> None:
+        guard(request)
+        if not llm_limiter.allow(client_key(request)):
+            raise HTTPException(429, "The agent is busy. Give it a minute, or use the form.")
+
     @app.middleware("http")
     async def edge_limits(request: Request, call_next):
         if request.method == "POST":
@@ -276,7 +284,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
     @app.post("/api/agent")
     async def agent(body: AgentBody, request: Request) -> dict[str, Any]:
         """Free text in, a redline out: the ADK agent picks the favourites, asks when unclear, edits."""
-        guard(request)
+        llm_guard(request)
         from .agent import run_agent
 
         try:
@@ -293,7 +301,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
     @app.post("/api/arrivals/read")
     async def arrivals_read(body: ReadNotesBody, request: Request) -> dict[str, Any]:
         """The agent reads tomorrow's notes; favourites come back for the concierge to confirm."""
-        guard(request)
+        llm_guard(request)
         from .arrivals import read_notes
 
         try:

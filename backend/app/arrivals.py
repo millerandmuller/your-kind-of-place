@@ -9,6 +9,8 @@ Two steps, so the concierge stays in charge:
 from __future__ import annotations
 
 import asyncio
+import re
+import unicodedata
 from typing import Any
 
 from google.adk.agents import LlmAgent
@@ -33,10 +35,48 @@ When every note is recorded, answer "done".
 """
 
 
+# A favourite right after one of these (within three words) is a dislike, not a favourite.
+_NEGATION = re.compile(
+    r"\b(not|no|never|hates?|dislikes?|can t stand|cannot stand|doesn t like|does not like|isn t|avoids?)\b"
+    r"(?:( \w+){0,3}) ?$"
+)
+
+
+def _fold(text: str) -> str:
+    """Case- and accent-insensitive, punctuation as spaces, any script kept (東京, Ж, é)."""
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c)).casefold()
+    return " ".join(re.sub(r"[^\w]+", " ", text).split())
+
+
+# Clauses end at , ; ! ? newlines, "but", a full stop after a real word (not "Dr." or "St."),
+# and before "and loves/likes/…" — so "hates coffee and loves Radiohead" keeps Radiohead.
+_CLAUSE = re.compile(
+    r"[,;!?\n]|(?<=[a-z]{3})\.(?=\s|$)|\bbut\b|\band(?= (?:loves?|likes?|adores?|enjoys?|is into)\b)", re.I
+)
+
+
+def _found(f: str, n: str) -> int:
+    hit = f" {n} ".find(f" {f} ")
+    if hit < 0 and " " not in f and not f.isascii():
+        hit = n.find(f)  # scripts written without spaces: plain containment
+    return hit
+
+
 def in_note(fav: str, note: str) -> bool:
-    """The favourite must be written in the note (case, accents and punctuation ignored)."""
-    f, n = norm(fav), norm(note)
-    return bool(f) and f" {f} " in f" {n} "
+    """The favourite must be written in the note, and not negated in its own clause ("hates Coldplay")."""
+    f = _fold(fav)
+    if not f:
+        return False
+    for clause in _CLAUSE.split(note):
+        n = _fold(clause)
+        hit = _found(f, n)
+        if hit < 0:
+            continue
+        before = f" {n} "[:hit].strip() if f" {f} " in f" {n} " else n[:hit]
+        if not _NEGATION.search(before):
+            return True
+    return False
 
 
 async def extract(settings: Settings, notes: list[str]) -> tuple[list[list[str]], list[dict[str, Any]]]:
@@ -103,5 +143,6 @@ async def morning_report(
             return {"label": g["label"], "result": {"status": "skipped", "message": "No favourites confirmed."}}
         return {"label": g["label"], "result": await r.run(city, interests, budget, hotel_lines)}
 
+    budget = budget if budget in (3, 5, 10) else 5
     rows = await asyncio.gather(*[one(g) for g in guests[:MAX_GUESTS]])
     return {"status": "ok", "city": city, "budget": budget, "guests": list(rows)}

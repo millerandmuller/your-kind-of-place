@@ -284,6 +284,9 @@ def test_favourites_must_be_written_in_the_note():
     note = "Room 204, Ms Patel: loves Amy Winehouse, always in Dr. Martens; nut allergy"
     assert in_note("Amy Winehouse", note) and in_note("dr martens", note)
     assert not in_note("Taylor Swift", note) and not in_note("Amy", "Amyx loves jazz")
+    assert not in_note("Coldplay", "Hates Coldplay, loves Radiohead") and in_note("Radiohead", "Hates Coldplay, loves Radiohead")
+    assert not in_note("Nike", "Not a fan of Nike") and not in_note("Succession", "never watch Succession")
+    assert in_note("Beyoncé", "loves beyonce") and in_note("東京事変", "東京事変が大好き") and in_note("Земфира", "Любит Земфира")
 
 
 def test_morning_report_redlines_each_confirmed_guest(tmp_path):
