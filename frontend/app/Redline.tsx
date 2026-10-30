@@ -197,6 +197,7 @@ export default function Redline() {
       {tab === "own" && (
         <OwnGuest
           budget={budget}
+          onStart={() => setResults((x) => ({ ...x, own: undefined }))}
           onResult={(r) => {
             setAnimate(true);
             setResults((x) => ({ ...x, own: r }));
@@ -421,7 +422,15 @@ function SendOut({ r, rejected }: { r: RedlineResult; rejected: Set<string> }) {
   );
 }
 
-function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineResult) => void }) {
+function OwnGuest({
+  budget,
+  onStart,
+  onResult,
+}: {
+  budget: number;
+  onStart: () => void;
+  onResult: (r: RedlineResult) => void;
+}) {
   const [city, setCity] = useState("London");
   const [names, setNames] = useState(["", "", ""]);
   const [ids, setIds] = useState<(string | undefined)[]>([undefined, undefined, undefined]);
@@ -444,6 +453,7 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
       setErr(null);
       setIssues([]);
       setAgent(null);
+      onStart();
       try {
         const r = await api.redline(city, interests, budget);
         if (r.status === "ok") onResult(r);
@@ -454,12 +464,13 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
         setBusy(null);
       }
     },
-    [names, ids, city, budget, onResult],
+    [names, ids, city, budget, onStart, onResult],
   );
 
   const runAgent = async () => {
     if (text.trim().length < 3) return;
     setBusy("agent");
+    onStart();
     setErr(null);
     setIssues([]);
     setAgent(null);
@@ -551,7 +562,7 @@ function OwnGuest({ budget, onResult }: { budget: number; onResult: (r: RedlineR
           onChange={(e) => setText(e.target.value)}
         />
         <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
-          {busy === "agent" ? "Agent is working… (10–20 s)" : "Ask the agent"}
+          {busy === "agent" ? "Agent is working… (10–30 s)" : "Ask the agent"}
         </button>
       </div>
       {issues.map((iss) =>

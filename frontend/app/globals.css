@@ -154,7 +154,7 @@ details.trace code { font-size: 0.78rem; }
 /* how page */
 .how h2 { font-family: var(--font-serif), Georgia, serif; font-weight: 500; margin: 28px 0 8px; }
 .how p, .how li { max-width: 70ch; }
-.how code { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.85em; }
+.how code { overflow-wrap: anywhere; background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.85em; }
 .how table { border-collapse: collapse; margin: 8px 0; }
 .how td, .how th { border-bottom: 1px solid var(--line); padding: 6px 12px 6px 0; text-align: left; vertical-align: top; }
 .limit { border-left: 3px solid var(--red); padding: 4px 0 4px 12px; }

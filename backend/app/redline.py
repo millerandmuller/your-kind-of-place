@@ -9,6 +9,7 @@ Rules (also shown on the "How this works" page):
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,6 +32,9 @@ NOT_A_RECOMMENDATION = {
     "restaurant:bubble_tea_store",
 }
 
+# Airport lounges and terminal outlets: "Heathrow Airport", "Terminal 3 Nelson Rd".
+_AIRPORT = re.compile(r"\bairport\b|\bterminal\s*\d", re.I)
+
 STRIKE_NOTE = "Not among this guest's top 50 taste matches"  # Qloo's page size; see match_count
 BUDGETS = (3, 5, 10)
 
@@ -45,9 +49,9 @@ def is_dining(place: dict[str, Any]) -> bool:
     genre = genre_of(place)
     if not genre or genre in NOT_A_RECOMMENDATION:
         return False
-    address = str((place.get("properties") or {}).get("address") or "")
-    if "airport" in address.lower():  # lounges and terminal outlets aren't somewhere to send a guest
-        return False
+    props = place.get("properties") or {}
+    if _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}"):
+        return False  # lounges and terminal outlets aren't somewhere to send a guest
     return genre == "restaurant" or genre.startswith("restaurant:") or genre in DINING_EXTRA
 
 

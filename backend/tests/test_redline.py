@@ -126,7 +126,9 @@ def test_api_redline_end_to_end_with_a_fake_qloo(tmp_path):
 def test_dining_filter_drops_burger_chains_and_airport_places():
     lounge = place("9")
     lounge["properties"]["address"] = "Terminal 3, Heathrow Airport, Hounslow"
-    places = [place("1", "restaurant:hamburger"), lounge, place("2", "restaurant:ice_cream_shop"), place("3", "pub")]
+    clubhouse = place("8")
+    clubhouse["properties"]["address"] = "Terminal 3 Nelson Rd Longford Hounslow TW6 1QG"
+    places = [place("1", "restaurant:hamburger"), lounge, clubhouse, place("2", "restaurant:ice_cream_shop"), place("3", "pub")]
     assert [p["entity_id"] for p in rl.dining(places)] == ["3"]
 
 
