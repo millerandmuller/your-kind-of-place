@@ -420,3 +420,8 @@ html[data-theme="night"] .mt-root {
   .mt-intro { padding-top: 0; }
   .mt-wordmark { margin-top: 12px; }
 }
+
+/* --- footer ----------------------------------------------------------------------------------- */
+.foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); }
+.foot p { margin: 0; font-size: 0.78rem; line-height: 1.5; color: var(--muted); max-width: 70ch; }
+.mt-honest + .mt-honest { margin-top: 8px; }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import Footer from "../Footer";
 import Nav from "../Nav";
 import { pickLang } from "@/lib/lang";
 import HowDE from "./content.de";
@@ -14,6 +15,7 @@ export default async function How() {
     <main className="wrap how">
       <Nav lang={lang} />
       {lang === "de" ? <HowDE /> : lang === "fr" ? <HowFR /> : <HowEN />}
+      <Footer lang={lang} />
     </main>
   );
 }

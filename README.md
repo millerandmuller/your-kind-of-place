@@ -81,6 +81,8 @@ Without an LLM key the form, the edited list and MCP still work; only "Ask the a
 
 ## Data
 
+Sample guests are fictional. Artist, show and brand names only describe what a guest likes; no affiliation with or endorsement by them is implied.
+
 No Qloo responses are stored in this repository. `demo-data/demo_guests.json` holds only the names and Qloo entity ids of the demo guests. Place data comes live from Qloo (or from the server's private cache). Notes are aggregate taste affinity from Qloo, not reviews or endorsements.
 
 ## AI use

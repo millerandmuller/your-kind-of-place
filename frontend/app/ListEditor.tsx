@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Arrivals from "./Arrivals";
 import Nav from "./Nav";
 import MapLink from "./MapLink";
+import Footer from "./Footer";
 import { LangContext, useLang, useT } from "./LangContext";
 import { LANGS, LOCALE, translate, type Lang, type Vars } from "@/lib/lang";
 import {
@@ -416,6 +417,7 @@ function Editor({ start }: { start: StartState }) {
         )}{" "}
         <Link href="/how">{t("How this works")}</Link>
       </p>
+      <Footer />
     </main>
   );
 }

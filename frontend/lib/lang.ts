@@ -45,6 +45,11 @@ export const DICT: Record<string, { de: string; fr: string }> = {
 
   Map: { de: "Karte", fr: "Carte" },
 
+  "Sample guests are fictional. Artist, show and brand names only describe what a guest likes; no affiliation with or endorsement by them is implied.": {
+    de: "Die Beispiel-Gäste sind erfunden. Namen von Künstlern, Serien und Marken beschreiben nur, was ein Gast mag; eine Verbindung zu ihnen oder eine Empfehlung durch sie ist damit nicht verbunden.",
+    fr: "Les clients d'exemple sont fictifs. Les noms d'artistes, de séries et de marques décrivent seulement ce qu'aime un client ; aucune affiliation avec eux ni aucun soutien de leur part n'est sous-entendu.",
+  },
+
   // Client demo: Montreonto Hotels (fictional)
   "Client demo": { de: "Kunden-Demo", fr: "Démo client" },
   "A fictional hotel · created for this demo": {

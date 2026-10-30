@@ -5,6 +5,7 @@ import { api, type Category, type EditResult, type Line } from "@/lib/api";
 import { translate, type Lang } from "@/lib/lang";
 import { LangContext } from "../LangContext";
 import MapLink from "../MapLink";
+import Footer, { DISCLAIMER } from "../Footer";
 import Nav from "../Nav";
 
 type City = "Toronto" | "Montreal";
@@ -135,6 +136,7 @@ function Demo({
             )}
           </p>
           <p className="mt-honest">{t("Places, notes and tags are live Qloo results. Montreonto is fictional.")}</p>
+          <p className="mt-honest">{t(DISCLAIMER)}</p>
         </section>
 
         <div className="mt-phone" aria-label={t("A guest's phone")}>
@@ -172,6 +174,7 @@ function Demo({
           />
         </div>
       </div>
+      <Footer />
     </main>
   );
 }
