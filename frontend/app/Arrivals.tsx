@@ -79,6 +79,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
   const [manual, setManual] = useState<string | null>(null);
   const [adding, setAdding] = useState<Record<number, string>>({});
   const inFlight = useRef(false);  // a double click must not run the agent twice
+  const [fromSample, setFromSample] = useState(false);  // the sample rooms were picked for contrast; say so
 
   const key = (g: number, f: number) => `${g}:${f}`;
 
@@ -160,6 +161,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
           .map((x) => ({ name: x.name, id: x.id })),
       }));
       setReport(await api.arrivalsReport(city, budget, guests, hotelLines, category, lang));
+      setFromSample(text === SAMPLE);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -214,6 +216,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
             {t("Sample arrivals")}
           </button>
         </div>
+        {text === SAMPLE && (
+          <p className="label">{t("Sample arrivals, chosen to show contrast. Try your own notes here.")}</p>
+        )}
         {extraNotes(text) > 0 && (
           <p className="err">
             {extraNotes(text) === 1
@@ -340,6 +345,11 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               </button>
             </span>
           </div>
+          {fromSample && (
+            <p className="label noprint">
+              {t("Sample arrivals, chosen to show contrast. Try your own notes above.")}
+            </p>
+          )}
           {report.guests.map((g, i) => {
             const r = g.result;
             if (r.status !== "ok")

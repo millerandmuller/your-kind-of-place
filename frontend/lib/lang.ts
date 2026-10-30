@@ -34,6 +34,15 @@ export const DICT: Record<string, { de: string; fr: string }> = {
   },
   "{n} of {m} with {room}": { de: "{n} von {m} mit {room}", fr: "{n} sur {m} avec {room}" },
 
+  "Sample arrivals, chosen to show contrast. Try your own notes above.": {
+    de: "Beispiel-Anreisen, ausgewählt, um Unterschiede zu zeigen. Probieren Sie oben eigene Notizen aus.",
+    fr: "Arrivées d'exemple, choisies pour montrer le contraste. Essayez vos propres notes ci-dessus.",
+  },
+  "Sample arrivals, chosen to show contrast. Try your own notes here.": {
+    de: "Beispiel-Anreisen, ausgewählt, um Unterschiede zu zeigen. Probieren Sie hier eigene Notizen aus.",
+    fr: "Arrivées d'exemple, choisies pour montrer le contraste. Essayez vos propres notes ici.",
+  },
+
   // Nav and message for the guest
   "How this works": { de: "So funktioniert es", fr: "Comment ça marche" },
   "Switch between day and night look": { de: "Zwischen Tag- und Nachtansicht wechseln", fr: "Basculer entre l'affichage jour et nuit" },
