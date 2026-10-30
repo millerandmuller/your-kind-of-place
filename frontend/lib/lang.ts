@@ -50,6 +50,13 @@ export const DICT: Record<string, { de: string; fr: string }> = {
     fr: "Les clients d'exemple sont fictifs. Les noms d'artistes, de séries et de marques décrivent seulement ce qu'aime un client ; aucune affiliation avec eux ni aucun soutien de leur part n'est sous-entendu.",
   },
 
+  "What does this mean?": { de: "Was bedeutet das?", fr: "Qu'est-ce que cela veut dire ?" },
+  "How many of the list's places may change for this guest. Places outside the guest's top 50 taste matches are struck out, lowest taste affinity first, and each is replaced by the guest's best match not yet on the list (restaurants & bars: at the list's price level or above). 3 = a light touch, 5 = balanced, 10 = everything that doesn't fit may change. If fewer fit, fewer change.": {
+    de: "Wie viele Orte der Liste sich für diesen Gast ändern dürfen. Gestrichen werden Orte außerhalb der 50 besten Geschmackstreffer des Gastes, die mit der geringsten Geschmacksaffinität zuerst; jeder wird durch den besten Treffer des Gastes ersetzt, der noch nicht auf der Liste steht (Restaurants & Bars: auf dem Preisniveau der Liste oder darüber). 3 = sanft, 5 = ausgewogen, 10 = alles, was nicht passt, darf sich ändern. Passen weniger, ändert sich weniger.",
+    fr: "Combien de lieux de la liste peuvent changer pour ce client. Les lieux hors des 50 meilleures correspondances de goût du client sont barrés, l'affinité la plus faible d'abord, et chacun est remplacé par la meilleure correspondance du client qui n'est pas encore sur la liste (restaurants et bars : au niveau de prix de la liste ou au-dessus). 3 = une touche légère, 5 = équilibré, 10 = tout ce qui ne convient pas peut changer. Si moins de lieux conviennent, moins de lignes changent.",
+  },
+  "Fill with an example": { de: "Mit Beispiel füllen", fr: "Remplir avec un exemple" },
+
   // Videos
   "Play explainer video": { de: "Erklärvideo abspielen", fr: "Lire la vidéo explicative" },
   "Explainer video": { de: "Erklärvideo", fr: "Vidéo explicative" },

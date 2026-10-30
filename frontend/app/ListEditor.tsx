@@ -7,6 +7,7 @@ import Nav from "./Nav";
 import MapLink from "./MapLink";
 import Footer from "./Footer";
 import Video from "./Video";
+import InfoTip from "./InfoTip";
 import { LangContext, useLang, useT } from "./LangContext";
 import { LANGS, LOCALE, translate, type Lang, type Vars } from "@/lib/lang";
 import {
@@ -258,6 +259,12 @@ function Editor({ start }: { start: StartState }) {
               </button>
             ))}
           </span>
+          <InfoTip
+            label={t("What does this mean?")}
+            text={t(
+              "How many of the list's places may change for this guest. Places outside the guest's top 50 taste matches are struck out, lowest taste affinity first, and each is replaced by the guest's best match not yet on the list (restaurants & bars: at the list's price level or above). 3 = a light touch, 5 = balanced, 10 = everything that doesn't fit may change. If fewer fit, fewer change.",
+            )}
+          />
         </span>
       </div>
 
@@ -810,6 +817,20 @@ function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
   );
 }
 
+// Examples tested live: each resolves without a question in Qloo and changes 5 of 10 places; none repeats a
+// demo pair or a video guest. The notes each carry one thing the app doesn't handle ("Not considered").
+const EXAMPLE_GUESTS: Record<string, [string, string][]> = {
+  London: [["Adele", "Burberry"], ["Stormzy", "Adidas"], ["Little Simz", "Stüssy"]],
+  "San Francisco": [["Metallica", "Levi's"], ["Green Day", "Vans"], ["Silicon Valley", "Allbirds"]],
+  "New York": [["Jay-Z", "Supreme"], ["The Strokes", "Converse"], ["Seinfeld", "Ralph Lauren"]],
+  Austin: [["Willie Nelson", "Stetson"], ["Yellowstone", "Ariat"], ["Post Malone", "Nike"]],
+};
+const EXAMPLE_NOTES = [
+  "Guest arriving Friday for an anniversary: loves Nina Simone and Aesop, vegetarian.",
+  "Guest checking in tonight: big Radiohead fan, always in Patagonia. Gluten-free, please.",
+  "Business trip, late check-in: loves Billie Eilish and Hermès. Needs a quiet table.",
+];
+
 function OwnGuest({
   start,
   budget,
@@ -841,6 +862,17 @@ function OwnGuest({
   const [steps, setSteps] = useState<TraceStep[]>([]);
   const [slow, setSlow] = useState(false);
   const inFlight = useRef(false);  // a second click before React re-renders must not send twice
+  // "Fill with an example": each click shows the next one; nothing is sent until the button is pressed.
+  const nextFav = useRef(0);
+  const nextNote = useRef(0);
+  const fillFavourites = () => {
+    const list = EXAMPLE_GUESTS[city] ?? EXAMPLE_GUESTS.London;
+    const ex = list[nextFav.current++ % list.length];
+    setNames([ex[0], ex[1], ""]);
+    setIds([undefined, undefined, undefined]);
+    setIssues([]);
+  };
+  const fillNote = () => setText(EXAMPLE_NOTES[nextNote.current++ % EXAMPLE_NOTES.length]);
 
   const hotelLines = useCallback(
     () =>
@@ -1047,9 +1079,14 @@ function OwnGuest({
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
         ))}
-        <button className="btn" type="button" disabled={busy !== null} onClick={() => submit()}>
-          {busy === "form" ? t("Editing…") : t("Edit the list")}
-        </button>
+        <span className="btn-stack">
+          <button className="btn" type="button" disabled={busy !== null} onClick={() => submit()}>
+            {busy === "form" ? t("Editing…") : t("Edit the list")}
+          </button>
+          <button type="button" className="fill" onClick={fillFavourites}>
+            {t("Fill with an example")}
+          </button>
+        </span>
       </div>
       <div className="or">{t("or describe the guest to the agent")}</div>
       <div className="fields">
@@ -1060,9 +1097,14 @@ function OwnGuest({
           maxLength={400}
           onChange={(e) => setText(e.target.value)}
         />
-        <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
-          {busy === "agent" ? t("Agent is working…") : t("Ask the agent")}
-        </button>
+        <span className="btn-stack">
+          <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
+            {busy === "agent" ? t("Agent is working…") : t("Ask the agent")}
+          </button>
+          <button type="button" className="fill" onClick={fillNote}>
+            {t("Fill with an example")}
+          </button>
+        </span>
       </div>
       {issues.map((iss) =>
         iss.kind === "clarify" ? (

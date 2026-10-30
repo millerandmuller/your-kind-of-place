@@ -450,3 +450,24 @@ html[data-theme="night"] .mt-root {
 .mt-intro .video { margin-top: 24px; }
 .mt-intro .video-frame { border-radius: 14px; }
 .mt-intro .video figcaption { font-family: var(--font-ui); color: var(--mt-ink); }
+
+/* --- quiet helpers: the "i" next to 3 / 5 / 10 and "Fill with an example" -------------------- */
+.infotip { position: relative; display: inline-flex; margin-left: 6px; }
+.infotip > button { all: unset; cursor: pointer; display: inline-flex; color: var(--muted); opacity: 0.55; border-radius: 50%; }
+.infotip > button:hover, .infotip > button[aria-expanded="true"] { opacity: 0.9; }
+.infotip > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; opacity: 0.9; }
+.infotip-pop {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: min(340px, calc(100vw - 40px));
+  padding: 10px 12px; border-radius: 8px; background: var(--sheet); color: var(--ink); border: 1px solid var(--line);
+  box-shadow: 0 12px 30px -12px #0006; font-size: 0.8rem; line-height: 1.45; white-space: normal; text-align: left;
+}
+.btn-stack { position: relative; display: inline-flex; }
+.btn-stack .fill { position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%); }
+.own .fields:has(.btn-stack) { margin-bottom: 20px; }
+.fill {
+  all: unset; cursor: pointer; font-size: 13px; color: var(--muted); opacity: 0.55; text-decoration: none; white-space: nowrap;
+}
+.fill:hover, .fill:focus-visible { text-decoration: underline; opacity: 0.85; }
+.fill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ctl { position: relative; }
+.ctl .infotip { position: static; }
