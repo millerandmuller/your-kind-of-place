@@ -15,7 +15,7 @@
   --on-accent: #fffdf8;
   --ask-line: #e9c46a;
   --ask-bg: #fff8e6;
-  --glass: rgba(244, 241, 234, 0.94);
+  --glass: rgba(244, 241, 234, 0.985);
   --font-display: var(--font-serif), Georgia, serif;
   --font-ui: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --radius: 10px;
@@ -37,7 +37,7 @@ html[data-theme="night"] {
   --on-accent: #0c0b0a;
   --ask-line: #8a6d2b;
   --ask-bg: #1d1910;
-  --glass: rgba(12, 11, 10, 0.94);
+  --glass: rgba(12, 11, 10, 0.985);
   --font-display: var(--font-fraunces), "Instrument Serif", serif;
   --font-ui: var(--font-figtree), sans-serif;
   color-scheme: dark;

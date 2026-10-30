@@ -252,7 +252,7 @@ def place_tags(place: dict[str, Any]) -> list[str]:
     feel = next((a for a in tag_names(place, "ambience") if a.lower() not in _PLAIN_AMBIENCE), None)
     if feel:
         out.append(feel)
-    if "Late night" in tag_names(place, "time_of_day_fit"):
+    if "Late night" in tag_names(place, "time_of_day_fit") and not any("late night" in t.lower() for t in out):
         out.append("Late night")
     seen: set[str] = set()
     return [t.lower() for t in out if not (t.lower() in seen or seen.add(t.lower()))]
