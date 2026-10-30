@@ -144,7 +144,10 @@ def build_tools(ws: Workspace):
         """Record what the edit does not use (allergies, diet, occasions, room wishes), word for word."""
         from .arrivals import written_in  # same check as the arrival notes
 
-        ws.other = [x.strip() for x in items if written_in(x, ws.text)][:6]
+        def names_a_favourite(item: str) -> bool:  # the favourites are what the edit does consider
+            return any(written_in(e.name, item) for e in ws.entities.values())
+
+        ws.other = [x.strip() for x in items if written_in(x, ws.text) and not names_a_favourite(x)][:6]
         ws.log.append({"tool": "not_considered", "input": items, "output": ws.other})
         return {"recorded": ws.other}
 
