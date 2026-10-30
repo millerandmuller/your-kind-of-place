@@ -141,6 +141,7 @@ ol.list { list-style: none; margin: 8px 0 0; padding: 0; }
 .confirm { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
 .guest-card { display: grid; gap: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips input { font: inherit; font-size: 0.85rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; min-width: 0; width: 160px; }
 .chip { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 0.85rem; }
 .chip[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); }
 .report { margin-top: 18px; }

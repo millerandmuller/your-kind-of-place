@@ -111,6 +111,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
+  resolve: (name: string) =>
+    call<FoundFavourite>("/api/resolve", { method: "POST", body: JSON.stringify({ name }) }),
   arrivalsRead: (notes: { label: string; text: string }[]) =>
     call<ArrivalRead>("/api/arrivals/read", { method: "POST", body: JSON.stringify({ notes }) }),
   arrivalsReport: (city: string, budget: number, guests: { label: string; interests: InterestIn[] }[], hotelList?: string[]) =>

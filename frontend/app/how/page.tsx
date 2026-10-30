@@ -94,9 +94,12 @@ export default function How() {
       <p>
         Under “Arrivals → morning report” a concierge pastes up to six arrival notes as the front desk or CRM wrote them. A
         second ADK agent reads them and calls <code>record_guest</code> once per note with up to three favourites. The server
-        keeps a favourite only if it is literally written in that note, then resolves each in Qloo. The concierge confirms or
+        keeps a favourite only if it is literally written in that note and not negated in the same clause (“hates
+        Coldplay”), then resolves each in Qloo. Without the agent (“Skip the agent”, or if it fails) the concierge types
+        favourites per guest. The concierge confirms or
         removes every favourite (and picks when a name is ambiguous); only then is each guest&apos;s list redlined with the same
-        rules as above. The morning report can be copied or printed.
+        rules as above, on the hotel&apos;s own list if one was pasted. The morning report shows each guest&apos;s full list and
+        can be copied or printed.
       </p>
 
       <h2>What we measured</h2>

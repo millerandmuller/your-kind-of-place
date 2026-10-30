@@ -7,6 +7,7 @@ import {
   guestName,
   LABEL,
   type ArrivalRead,
+  type FoundFavourite,
   type Interest,
   type MorningReport,
   type Option,
@@ -37,9 +38,9 @@ function reportText(rep: MorningReport): string {
     const r = g.result;
     if (r.status !== "ok") return `${g.label}\n   (no list: ${r.status === "skipped" ? "no favourites confirmed" : "needs a pick"})`;
     const ok = r as RedlineResult;
-    const rows = ok.lines
-      .filter((l) => l.status !== "keep")
-      .map((l) => (l.status === "strike" ? `   - ${l.place.name}` : `   + ${l.place.name}  (${l.note})`));
+    const rows = ok.lines.map((l) =>
+      l.status === "strike" ? `   - ${l.place.name}` : l.status === "insert" ? `   + ${l.place.name}  (${l.note})` : `     ${l.place.name}`,
+    );
     return `${g.label} · loves ${guestName(ok.guest)} · ${ok.changed} of ${ok.length} changed\n${rows.join("\n")}`;
   });
   return `Morning report: tomorrow's arrivals, ${rep.city}\n\n${parts.join("\n\n")}\n\n${LABEL}`;
@@ -54,8 +55,41 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
   const [busy, setBusy] = useState<"read" | "report" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [manual, setManual] = useState<string | null>(null);
+  const [adding, setAdding] = useState<Record<number, string>>({});
 
   const key = (g: number, f: number) => `${g}:${f}`;
+
+  // Without the agent (it failed, or the concierge prefers to type): one card per note, no favourites yet.
+  const byHand = (why: string | null) => {
+    const notes = parse(text);
+    if (!notes.length) {
+      setErr("Paste at least one arrival note, one guest per line.");
+      return;
+    }
+    setRead({ status: "ok", guests: notes.map((n) => ({ ...n, favourites: [] })), trace: [] });
+    setPicked({});
+    setReport(null);
+    setManual(why ?? "Add each guest's favourites by hand below.");
+  };
+
+  const addFavourite = async (gi: number) => {
+    const name = (adding[gi] ?? "").trim();
+    if (!read || name.length < 2) return;
+    setErr(null);
+    try {
+      const f: FoundFavourite = await api.resolve(name);
+      const fi = read.guests[gi].favourites.length;
+      setRead({
+        ...read,
+        guests: read.guests.map((g, i) => (i === gi ? { ...g, favourites: [...g.favourites, f] } : g)),
+      });
+      if (f.status === "ok") setPicked((p) => ({ ...p, [key(gi, fi)]: f.entity! }));
+      setAdding((a) => ({ ...a, [gi]: "" }));
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  };
 
   const readNotes = async () => {
     const notes = parse(text);
@@ -67,6 +101,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
     setErr(null);
     setRead(null);
     setReport(null);
+    setManual(null);
     try {
       const r = await api.arrivalsRead(notes);
       const p: Record<string, Interest | null> = {};
@@ -78,7 +113,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
       setPicked(p);
       setRead(r);
     } catch (e) {
-      setErr((e as Error).message);
+      byHand(`The agent couldn't read the notes (${(e as Error).message}) Add each guest's favourites by hand below.`);
     } finally {
       setBusy(null);
     }
@@ -144,7 +179,10 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
         </div>
         <div className="fields">
           <button className="btn" type="button" disabled={busy !== null} onClick={readNotes}>
-            {busy === "read" ? "Agent is reading the notes… (5–20 s)" : "1. Read the notes"}
+            {busy === "read" ? "Agent is reading the notes…" : "1. Read the notes"}
+          </button>
+          <button className="btn ghost" type="button" disabled={busy !== null} onClick={() => byHand(null)}>
+            Skip the agent
           </button>
           <small className="label" style={{ margin: 0 }}>
             The agent only keeps favourites that are written in the note; you confirm them before anything is edited.
@@ -153,6 +191,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
 
         {read && (
           <div className="confirm">
+            {manual && <p className="ask">{manual}</p>}
             {read.guests.map((g, gi) => (
               <div className="guest-card" key={gi}>
                 <strong>{g.label}</strong> <span className="label">{g.text}</span>
@@ -191,6 +230,17 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                       </span>
                     ),
                   )}
+                  <input
+                    aria-label={`Add a favourite for ${g.label}`}
+                    placeholder="Add a favourite"
+                    value={adding[gi] ?? ""}
+                    maxLength={120}
+                    onChange={(e) => setAdding((a) => ({ ...a, [gi]: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && addFavourite(gi)}
+                  />
+                  <button type="button" className="chip" onClick={() => addFavourite(gi)}>
+                    Add
+                  </button>
                 </div>
               </div>
             ))}
@@ -253,17 +303,21 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                   {ok.cached && <span className="badge"> cached result</span>}
                 </h3>
                 <ol className="list compact">
-                  {ok.lines
-                    .filter((l) => l.status !== "keep")
-                    .map((l) => (
-                      <li key={`${l.status}-${l.place.id}`} className={`row ${l.status}`}>
-                        <span className="num">{l.status === "insert" ? "+" : "−"}</span>
-                        <div className="place">
-                          <div className="name">{l.place.name}</div>
-                          <div className="meta">{l.status === "insert" ? l.note : "Not among this guest's top 50 taste matches"}</div>
+                  {ok.lines.map((l) => (
+                    <li key={`${l.status}-${l.place.id}`} className={`row ${l.status}`}>
+                      <span className="num">{l.status === "insert" ? "+" : l.status === "strike" ? "−" : "·"}</span>
+                      <div className="place">
+                        <div className="name">{l.place.name}</div>
+                        <div className="meta">
+                          {l.status === "insert"
+                            ? l.note
+                            : l.status === "strike"
+                              ? "Not among this guest's top 50 taste matches"
+                              : [l.place.kind, l.place.neighborhood].filter(Boolean).join(" · ")}
                         </div>
-                      </li>
-                    ))}
+                      </div>
+                    </li>
+                  ))}
                 </ol>
               </div>
             );

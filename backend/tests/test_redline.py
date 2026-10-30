@@ -311,3 +311,11 @@ def test_unscored_entries_are_struck_only_after_scored_ones():
 def test_house_of_prime_rib_is_not_an_in_house_line():
     from app.service import IN_HOUSE
     assert not IN_HOUSE.match("House of Prime Rib") and IN_HOUSE.match("Our rooftop bar")
+
+
+def test_resolve_endpoint_needs_no_model(tmp_path):
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(fake_qloo))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/resolve", json={"name": "Amy Winehouse"}).json()
+        assert body["status"] == "ok" and body["entity"]["id"] == "A"

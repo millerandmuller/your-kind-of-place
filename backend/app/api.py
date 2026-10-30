@@ -298,6 +298,22 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
         except Exception as exc:  # noqa: BLE001 — model/ADK trouble must not surface as a bare 500
             raise HTTPException(503, f"The agent couldn't run: {exc.__class__.__name__}") from exc
 
+    @app.post("/api/resolve")
+    async def resolve(body: InterestBody, request: Request) -> dict[str, Any]:
+        """Find one favourite in Qloo, without a model: a match, a question, or not found."""
+        guard(request)
+        from .resolve import Clarify, Entity, resolve_interest
+
+        try:
+            f = await resolve_interest(state["redliner"].qloo, 0, body.name, body.id)
+        except QlooError as exc:
+            raise qloo_http_error(exc) from exc
+        if isinstance(f, Entity):
+            return {"query": body.name, "status": "ok", "entity": f.public()}
+        if isinstance(f, Clarify):
+            return {"query": body.name, "status": "clarify", "question": f.question, "options": f.options}
+        return {"query": body.name, "status": "not_found", "message": f.message}
+
     @app.post("/api/arrivals/read")
     async def arrivals_read(body: ReadNotesBody, request: Request) -> dict[str, Any]:
         """The agent reads tomorrow's notes; favourites come back for the concierge to confirm."""

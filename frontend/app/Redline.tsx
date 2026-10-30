@@ -207,7 +207,8 @@ export default function Redline() {
         </p>
       )}
 
-      {tab === "arrivals" && (
+      {(
+        <div hidden={tab !== "arrivals"}>
         <Arrivals
           budget={budget}
           hotelLines={hotelText
@@ -216,6 +217,7 @@ export default function Redline() {
             .filter(Boolean)
             .slice(0, 10)}
         />
+        </div>
       )}
 
       {tab === "own" && (
@@ -322,7 +324,7 @@ export default function Redline() {
 
       {sendOpen && current && tab !== "default" && <SendOut r={current} rejected={rej} />}
 
-      <p className="label noprint" style={{ marginTop: 18 }}>
+      <p className="label noprint" style={{ marginTop: 18 }} hidden={tab === "arrivals"}>
         {LABEL} Notes name the guest&apos;s favourite that Qloo&apos;s explainability says drove the place.{" "}
         <Link href="/how">How this works</Link>
       </p>
@@ -718,7 +720,7 @@ function OwnGuest({
           onChange={(e) => setText(e.target.value)}
         />
         <button className="btn ghost" type="button" disabled={busy !== null} onClick={runAgent}>
-          {busy === "agent" ? "Agent is working… (10–30 s)" : "Ask the agent"}
+          {busy === "agent" ? "Agent is working…" : "Ask the agent"}
         </button>
       </div>
       {issues.map((iss) =>
