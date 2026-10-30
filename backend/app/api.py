@@ -106,6 +106,9 @@ class AgentBody(BaseModel):
     text: str = Field(min_length=3, max_length=400)
     city: str = Field(default="London", min_length=2, max_length=40)
     budget: int = 5
+    hotel_list: list[str] | None = Field(default=None, max_length=40)
+
+    _hotel = field_validator("hotel_list")(RedlineBody._lines.__func__)
 
     @field_validator("text")
     @classmethod
@@ -250,7 +253,7 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
 
         try:
             return guard_agent_text(labelled(
-                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget), timeout=52)
+                await asyncio.wait_for(run_agent(state["redliner"], settings, body.text, body.city, body.budget, body.hotel_list), timeout=52)
             ))
         except asyncio.TimeoutError as exc:
             raise HTTPException(504, "The agent took too long. Try the form instead.") from exc

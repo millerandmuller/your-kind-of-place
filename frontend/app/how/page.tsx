@@ -35,8 +35,8 @@ export default function How() {
         <code>GET /search?types=urn:entity:place</code> and matched to a restaurant or bar within 25 km (same dining filter as
         above, except that chains the hotel lists itself are kept): an exact name first, then a place whose name contains the
         line (“Dishoom” → “Dishoom King&apos;s Cross”), then a place whose name the line contains (“Kiln Soho” → “Kiln”). The
-        screen says “listed as ‘Dishoom’”. Lines that don&apos;t match stay on the list as typed, unmarked, and are never
-        struck; a line naming a place already on the list is skipped and shown as a repeat.
+        screen says “listed as ‘Dishoom’”. Lines that don&apos;t match stay on the list as typed, marked “not matched”, and are
+        never struck; a line naming a place already on the list is skipped and shown as a repeat.
       </p>
 
       <h2>2. The guest</h2>
@@ -79,7 +79,8 @@ export default function How() {
       <p>
         “Ask the agent” runs a Google ADK agent (Claude via LiteLLM) with five tools: <code>resolve_interest</code>,{" "}
         <code>default_list</code>, <code>taste_places</code>, <code>redline</code>, <code>explain_place</code>. It reads the
-        favourites out of free text, asks when a name is unclear and returns the same redline as the form. Its tool calls are shown
+        favourites out of free text, asks when a name is unclear and returns the same redline as the form, on the hotel&apos;s
+        own list if one is pasted. Its tool calls are shown
         under the result; its sentence is checked on the server and replaced by a plain summary if it names a number the tools
         didn&apos;t return or compares the list to anything. The same capability is an MCP tool at{" "}
         <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget)</code>.
@@ -123,7 +124,8 @@ export default function How() {
       </p>
       <p>
         In the same test, two fans of nearly the same music also got very different lists. Qloo moves a lot with small
-        differences in taste, so Redline shows opposite guests one after the other and says nothing about guests who are alike.
+        differences in taste, so Redline shows opposite guests (one after the other, or side by side under “Compare”) and says nothing about
+        guests who are alike.
       </p>
       <p>
         Accept and reject are only kept on your screen. Demo guests may be answered from saved Qloo results and are marked

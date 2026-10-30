@@ -91,10 +91,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
-  agent: (text: string, city: string, budget: number) =>
+  agent: (text: string, city: string, budget: number, hotelList?: string[]) =>
     call<Redline | NeedsInput | AgentError>("/api/agent", {
       method: "POST",
-      body: JSON.stringify({ text, city, budget }),
+      body: JSON.stringify({ text, city, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
 };
 
@@ -103,7 +103,7 @@ export const BUDGETS = [3, 5, 10];
 export const LABEL = "Aggregate taste affinity from Qloo, not a review.";
 export const HOTEL_LABEL = "Your hotel's list: each line matched to a restaurant or bar in Qloo; lines it can't match are kept as is";
 export const SAMPLE_LISTS: Record<string, string[]> = {
-  London: ["The Wolseley", "Dishoom", "Hawksmoor", "Barrafina", "St. John", "Sketch", "Chiltern Firehouse", "Duck & Waffle", "Our Little Corner Bistro"],
+  London: ["The Wolseley", "Dishoom", "Hawksmoor", "Barrafina", "St. John", "Sketch", "Rules", "Duck & Waffle", "Our Little Corner Bistro"],
   "New York": ["Katz's Delicatessen", "Balthazar", "Carbone", "Russ & Daughters", "Le Bernardin", "Minetta Tavern", "The Dead Rabbit", "Via Carota"],
   "San Francisco": ["Zuni Cafe", "Tartine Bakery", "House of Prime Rib", "Swan Oyster Depot", "State Bird Provisions", "Foreign Cinema", "Tosca Cafe"],
   Austin: ["Franklin Barbecue", "Uchiko", "Odd Duck", "Matt's El Rancho", "Veracruz All Natural", "Jeffrey's", "The Driskill Bar"],

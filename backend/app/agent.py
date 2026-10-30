@@ -39,10 +39,11 @@ a number that no tool returned. Never say a list is "better"; say it fits this g
 class Workspace:
     """What the tools share during one run (the agent never sees raw Qloo payloads)."""
 
-    def __init__(self, redliner: Redliner, city: str, budget: int):
+    def __init__(self, redliner: Redliner, city: str, budget: int, hotel_lines: list[str] | None = None):
         self.r = redliner
         self.city = city
         self.budget = budget
+        self.hotel_lines = hotel_lines
         self.entities: dict[str, Entity] = {}
         self.issues: list[dict[str, Any]] = []
         self.result: dict[str, Any] | None = None
@@ -73,9 +74,14 @@ def build_tools(ws: Workspace):
 
     async def default_list(city: str) -> dict[str, Any]:
         """The city's top restaurants and bars with no taste signal (stands in for the hotel's list)."""
-        ws.city = check_city(city) if city.strip().lower() in {c.lower() for c in CITIES} else ws.city
-        places = await ws.r.default_list(ws.city)
-        ws.log.append({"tool": "default_list", "input": ws.city, "output": f"{len(places)} places"})
+        if not ws.hotel_lines:  # with the hotel's own list the city is the hotel's, not the guest's
+            ws.city = check_city(city) if city.strip().lower() in {c.lower() for c in CITIES} else ws.city
+        if ws.hotel_lines:
+            places, _ = await ws.r.hotel_list(ws.city, ws.hotel_lines)
+            ws.log.append({"tool": "default_list", "input": f"hotel's own list ({ws.city})", "output": f"{len(places)} lines"})
+        else:
+            places = await ws.r.default_list(ws.city)
+            ws.log.append({"tool": "default_list", "input": ws.city, "output": f"{len(places)} places"})
         return {"city": ws.city, "places": [p["name"] for p in places]}
 
     async def taste_places(city: str, interest_ids: list[str]) -> dict[str, Any]:
@@ -94,7 +100,7 @@ def build_tools(ws: Workspace):
         ids = [i for i in interest_ids if i in ws.entities][:3]
         if not ids:
             return {"status": "error", "message": "resolve_interest must succeed first"}
-        out = await ws.r.edit(ws.city, [ws.entities[i] for i in ids], ws.budget)
+        out = await ws.r.edit(ws.city, [ws.entities[i] for i in ids], ws.budget, ws.hotel_lines)
         ws.result = out
         ws.log.append({"tool": "redline", "input": {"budget": ws.budget},
                        "output": f"{out['changed']} of {out['length']} changed"})
@@ -128,23 +134,33 @@ def adk_model(settings: Settings, model: str | None = None):
     raise RuntimeError("no LLM provider configured for the agent")
 
 
-async def run_agent(redliner: Redliner, settings: Settings, text: str, city: str, budget: int) -> dict[str, Any]:
+async def run_agent(
+    redliner: Redliner, settings: Settings, text: str, city: str, budget: int, hotel_lines: list[str] | None = None
+) -> dict[str, Any]:
     """Let the agent drive the service; if the main model fails before any tool ran, try the fallback."""
     try:
-        return await _run(redliner, settings, settings.llm_model, text, city, budget)
+        return await _run(redliner, settings, settings.llm_model, text, city, budget, hotel_lines)
     except _ModelFailed:
         if not settings.llm_fallback_model:
             raise
-        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget)
+        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget, hotel_lines)
 
 
 class _ModelFailed(RuntimeError):
     pass
 
 
-async def _run(redliner: Redliner, settings: Settings, model: str, text: str, city: str, budget: int) -> dict[str, Any]:
+async def _run(
+    redliner: Redliner,
+    settings: Settings,
+    model: str,
+    text: str,
+    city: str,
+    budget: int,
+    hotel_lines: list[str] | None = None,
+) -> dict[str, Any]:
     trace = start_trace()
-    ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5)
+    ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5, hotel_lines)
     agent = LlmAgent(
         name="redline_concierge",
         model=adk_model(settings, model),

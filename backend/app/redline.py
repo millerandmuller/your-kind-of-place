@@ -42,6 +42,11 @@ CHAINS = (
     "hooters", "tgi friday", "olive garden", "shake shack", "pret a manger", "costa coffee", "le pain quotidien",
     "dunkin", "chipotle", "subway", "domino's", "kfc", "burger king", "in-n-out", "applebee", "chili's",
     "buffalo wild wings", "ihop", "denny's", "pizza hut", "papa john", "taco bell", "wendy's", "honest burgers",
+    "franco manca", "ladurée", "laduree", "black & blue", "wahaca", "zizzi", "prezzo", "bella italia", "côte brasserie",
+    "cote brasserie", "gail's", "leon ", "itsu", "yo! sushi", "yo sushi", "pizza pilgrims", "byron", "patty & bun",
+    "tortilla", "chiquito", "frankie & benny", "carluccio", "giraffe", "las iguanas", "bill's", "the real greek",
+    "joe & the juice", "blue bottle coffee", "peet's", "tim hortons", "panera", "p.f. chang", "cheesecake",
+    "vapiano", "block house", "l'osteria", "hans im glück", "dean & david", "maredo",
 )
 UNMATCHED = "line:"  # entity id prefix for hotel-list lines Qloo doesn't know
 

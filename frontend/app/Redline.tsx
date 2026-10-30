@@ -460,7 +460,8 @@ function sendText(r: RedlineResult, rejected: Set<string>): string {
   for (const l of r.lines) if (l.status === "insert" && !rejected.has(l.replaces ?? "")) notes.set(l.place.id, l.note);
   const rows = finalList(r, rejected).map((p, i) => {
     const note = notes.get(p.id);
-    return `${i + 1}. ${p.name}  (${meta(p)})${note ? `\n   ${note}` : ""}`;
+    const where = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
+    return `${i + 1}. ${p.name}${where ? `  (${where})` : ""}${note ? `\n   ${note}` : ""}`;
   });
   return `Picked for you: restaurants & bars in ${r.city}\n\n${rows.join("\n")}\n\nPicks marked with a note were chosen for your taste. ${LABEL}`;
 }
@@ -509,6 +510,16 @@ function OwnGuest({
   const [hotelText, setHotelText] = useState("");
   const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[] } | null>(null);
 
+  const hotelLines = useCallback(
+    () =>
+      hotelText
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, 10),
+    [hotelText],
+  );
+
   const submit = useCallback(
     async (n = names, chosen = ids) => {
       const interests = n
@@ -524,12 +535,7 @@ function OwnGuest({
       setAgent(null);
       onStart();
       try {
-        const hotelList = hotelText
-          .split("\n")
-          .map((l) => l.trim())
-          .filter(Boolean)
-          .slice(0, 10);
-        const r = await api.redline(city, interests, budget, hotelList);
+        const r = await api.redline(city, interests, budget, hotelLines());
         if (r.status === "ok") onResult(r);
         else setIssues((r as NeedsInput).issues);
       } catch (e) {
@@ -538,7 +544,7 @@ function OwnGuest({
         setBusy(null);
       }
     },
-    [names, ids, city, budget, hotelText, onStart, onResult],
+    [names, ids, city, budget, hotelLines, onStart, onResult],
   );
 
   const runAgent = async () => {
@@ -549,7 +555,7 @@ function OwnGuest({
     setIssues([]);
     setAgent(null);
     try {
-      const r = await api.agent(text, city, budget);
+      const r = await api.agent(text, city, budget, hotelLines());
       setAgent({ said: r.agent_said, trace: r.trace });
       if (r.city && CITIES.includes(r.city)) setCity(r.city);
       if (r.status === "ok") {
