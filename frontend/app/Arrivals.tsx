@@ -23,7 +23,7 @@ import {
 const SAMPLE = [
   "Room 204: Ms Patel, 2 nights. Loves Amy Winehouse, always in Dr. Martens. Nut allergy.",
   "Room 310: Mr & Mrs Clarke, anniversary. Big Bridgerton fans, she wears Jo Malone. Late check-out asked.",
-  "Room 112: Tom, business trip, rewatching Peaky Blinders, drinks Guinness. Quiet room please.",
+  "Room 112: Mr Roy, business trip, rewatching Succession, only wears Loro Piana. Quiet room please.",
   "Room 415: Sophie, here for a concert. Charli XCX superfan, Glossier everything.",
 ].join("\n");
 

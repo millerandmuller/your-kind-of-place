@@ -99,7 +99,7 @@ class EditBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     interests: list[InterestBody] = Field(min_length=1, max_length=3)
     budget: int = 5
-    category: Literal["dining", "nightlife", "museums"] = "dining"
+    category: Literal["dining", "nightlife"] = "dining"
     lang: Literal["en", "de", "fr"] = "en"  # language of the margin notes
     hotel_list: list[str] | None = Field(default=None, max_length=40)  # the hotel's own list, one place per line
 
@@ -190,7 +190,7 @@ class ReportBody(BaseModel):
     city: str = Field(min_length=2, max_length=40)
     budget: int = 5
     lang: Literal["en", "de", "fr"] = "en"
-    category: Literal["dining", "nightlife", "museums"] = "dining"
+    category: Literal["dining", "nightlife"] = "dining"
     guests: list[ArrivalGuest] = Field(min_length=1, max_length=6)
     hotel_list: list[str] | None = Field(default=None, max_length=40)
 

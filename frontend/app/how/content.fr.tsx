@@ -111,14 +111,17 @@ export default function HowFR() {
       </p>
 
       <h2>Ce que nous avons mesuré</h2>
-      <p>Un test avant de construire, le 25 octobre 2026, à San Francisco, Austin et London, avec 12 paires de clients opposés :</p>
+      <p>
+        Un test à l&apos;aveugle avec 12 paires de clients opposés à San Francisco, Austin et London, d&apos;abord le 25 octobre 2026,
+        puis le 30 octobre avec la règle de niveau de prix qu&apos;utilise le produit :
+      </p>
       <table>
         <tbody>
           <tr>
             <th>Association à l&apos;aveugle</th>
             <td>
               Un modèle distinct a vu deux listes et deux profils de clients, sans aucune mention de Qloo, et les a associés correctement dans{" "}
-              <strong>11 cas sur 12</strong>.
+              <strong>10 cas sur 12</strong> (11 sur 12 sans la règle de niveau de prix).
             </td>
           </tr>
           <tr>
@@ -137,7 +140,8 @@ export default function HowFR() {
         </tbody>
       </table>
       <p className="label">
-        Le test portait sur la requête par tag restaurant, sans le filtre de restauration ci-dessus. Le juge était un modèle de langage, pas une personne ;
+        Le passage à 10 sur 12 utilisait le filtre de restauration et la règle de niveau de prix du produit ; le premier passage
+        (11 sur 12), la requête par tag restaurant sans eux. Stabilité et recoupement viennent du premier passage. Le juge était un modèle de langage, pas une personne ;
         12 cas forment un petit échantillon, et les profils étaient volontairement opposés.
       </p>
 
@@ -145,33 +149,29 @@ export default function HowFR() {
       <p>
         Avant d&apos;ajouter une catégorie, nous lui avons appliqué le même test à l&apos;aveugle (fixé par écrit avant l&apos;exécution : 12 paires de clients opposés
         à San Francisco, Austin et London, un modèle distinct associant deux listes à deux clients sans connaître Qloo,
-        réussite à partir de 10 sur 12 ; une liste de moins de 8 lieux compte comme un échec).
+        réussite à partir de 10 sur 12 ; une liste de moins de 8 lieux compte comme un échec). Seul ce qui réussit entre dans le
+        produit ; chaque résultat, réussi ou non, figure ici.
       </p>
       <table>
         <tbody>
           <tr>
             <th>Restaurants &amp; bars</th>
-            <td>11 sur 12 (le premier test, ci-dessus) — proposé, et le parcours de démo</td>
-          </tr>
-          <tr>
-            <th>Restaurants &amp; bars de niveau 3 ou plus</th>
             <td>
-              <strong>10 sur 12</strong> — le même test avec la règle de niveau ci-dessus (niveau de prix 3+, pas de pubs). Réussi, un cas
-              de moins que sans la règle : sur une liste haut de gamme, deux clients opposés partagent plus de lieux.
+              <strong>10 sur 12</strong> avec la règle de niveau de prix (11 sur 12 sans la règle de niveau de prix) — proposé, et le
+              parcours de démo
             </td>
           </tr>
           <tr>
             <th>Musique live &amp; vie nocturne</th>
             <td>
-              <strong>10 sur 12</strong> — proposé sous « Your guest (and list) » et « Arrivals ». Pile sur le seuil, donc à considérer comme
-              la plus faible des deux.
+              <strong>10 sur 12</strong> — proposé sous « Your guest (and list) » et « Morning report ». Pile sur le seuil.
             </td>
           </tr>
           <tr>
             <th>Journée : musées &amp; galeries</th>
             <td>
-              <strong>10 sur 12</strong> — proposé. Pile sur le seuil et avec une faible confiance du juge (2,4 sur 5) : deux clients opposés
-              partagent la plupart des musées (recoupement 0,78), il faut donc s&apos;attendre à peu de changements.
+              10 sur 12 — réussi, mais non proposé : pile sur le seuil, avec une faible confiance du juge (2,4 sur 5), et deux clients
+              opposés partageaient la plupart des musées (recoupement 0,78), la modification changeait donc peu de chose.
             </td>
           </tr>
           <tr>

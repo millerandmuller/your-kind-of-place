@@ -38,8 +38,7 @@ def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
         hotel_list: optional, the hotel's own list (up to 10 names, one place each). Each name is
         matched to a restaurant or bar in Qloo within 25 km; names it can't match are kept as is and
         never struck. Without it, the city's top places with no taste signal stand in.
-        category: "dining" (restaurants & bars, default), "nightlife" (live music & nightlife) or
-            "museums" (daytime: museums & galleries).
+        category: "dining" (restaurants & bars, default) or "nightlife" (live music & nightlife).
         Returns the struck entries, the inserted ones with a note on which favourite drove each
         (Qloo explainability), and the final list. If a name is ambiguous the result is status
         "needs_input" with the question to ask; pick nothing yourself.
@@ -51,8 +50,8 @@ def build_mcp(get_redliner: Callable[[], Redliner]) -> FastMCP:
         lines = [" ".join(x.split()) for x in (hotel_list or []) if len(x.strip()) >= 2][:10]
         if any(len(x) > 120 for x in lines):
             return {"status": "error", "message": "Each hotel_list line must be under 120 characters."}
-        if category not in ("dining", "nightlife", "museums"):
-            return {"status": "error", "message": 'category must be "dining", "nightlife" or "museums"'}
+        if category not in ("dining", "nightlife"):
+            return {"status": "error", "message": 'category must be "dining" or "nightlife"'}
         if budget not in BUDGETS:
             return {"status": "error", "message": f"budget must be one of {list(BUDGETS)}"}
         try:

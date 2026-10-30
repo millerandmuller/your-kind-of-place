@@ -111,14 +111,17 @@ export default function HowDE() {
       </p>
 
       <h2>Was wir gemessen haben</h2>
-      <p>Ein Test vor dem Bau, am 25. Oktober 2026, in San Francisco, Austin und London, mit 12 Paaren gegensätzlicher Gäste:</p>
+      <p>
+        Ein Blindtest mit 12 Paaren gegensätzlicher Gäste in San Francisco, Austin und London, zuerst am 25. Oktober 2026 und
+        erneut am 30. Oktober mit der Preisniveau-Regel, die das Produkt verwendet:
+      </p>
       <table>
         <tbody>
           <tr>
             <th>Blinde Zuordnung</th>
             <td>
               Ein separates Modell sah zwei Listen und zwei Gästeprofile, ohne Hinweis auf Qloo, und ordnete sie in{" "}
-              <strong>11 von 12</strong> Fällen richtig zu.
+              <strong>10 von 12</strong> Fällen richtig zu (11 von 12 ohne die Preisniveau-Regel).
             </td>
           </tr>
           <tr>
@@ -137,7 +140,8 @@ export default function HowDE() {
         </tbody>
       </table>
       <p className="label">
-        Der Test lief mit der Restaurant-Tag-Abfrage ohne den oben beschriebenen Gastronomie-Filter. Bewertet hat ein Sprachmodell, kein Mensch;
+        Der Lauf mit 10 von 12 verwendete den Gastronomie-Filter und die Preisniveau-Regel des Produkts; der erste Lauf (11 von 12)
+        die Restaurant-Tag-Abfrage ohne beides. Stabilität und Überlappung stammen aus dem ersten Lauf. Bewertet hat ein Sprachmodell, kein Mensch;
         12 Fälle sind eine kleine Stichprobe, und die Profile waren bewusst gegensätzlich.
       </p>
 
@@ -145,33 +149,29 @@ export default function HowDE() {
       <p>
         Bevor wir eine Kategorie aufgenommen haben, haben wir denselben Blindtest damit durchgeführt (vor dem Lauf schriftlich festgelegt: 12 Paare gegensätzlicher Gäste
         in San Francisco, Austin und London, ein separates Modell, das zwei Listen zwei Gästen zuordnet, ohne von Qloo zu wissen,
-        bestanden ab 10 von 12; eine Liste mit weniger als 8 Orten zählt als Fehlschlag).
+        bestanden ab 10 von 12; eine Liste mit weniger als 8 Orten zählt als Fehlschlag). Ins Produkt kommt nur, was besteht;
+        jedes Ergebnis, bestanden oder nicht, steht hier.
       </p>
       <table>
         <tbody>
           <tr>
             <th>Restaurants &amp; Bars</th>
-            <td>11 von 12 (der erste Test, oben) — angeboten, und der Demo-Pfad</td>
-          </tr>
-          <tr>
-            <th>Restaurants &amp; Bars ab Niveau 3</th>
             <td>
-              <strong>10 von 12</strong> — derselbe Test mit der Niveau-Regel oben (Preisniveau 3+, keine Pubs). Bestanden, ein Fall
-              weniger als ohne die Regel: Auf einer gehobenen Liste teilen sich zwei gegensätzliche Gäste mehr Orte.
+              <strong>10 von 12</strong> mit der Preisniveau-Regel (11 von 12 ohne die Preisniveau-Regel) — angeboten, und der
+              Demo-Pfad
             </td>
           </tr>
           <tr>
             <th>Livemusik &amp; Nachtleben</th>
             <td>
-              <strong>10 von 12</strong> — angeboten unter „Your guest (and list)“ und „Arrivals“. Genau auf der Grenze, daher als
-              die schwächere der beiden zu betrachten.
+              <strong>10 von 12</strong> — angeboten unter „Your guest (and list)“ und „Morning report“. Genau auf der Grenze.
             </td>
           </tr>
           <tr>
             <th>Tagsüber: Museen &amp; Galerien</th>
             <td>
-              <strong>10 von 12</strong> — angeboten. Genau auf der Grenze und mit geringer Sicherheit des Bewerters (2,4 von 5): Zwei gegensätzliche
-              Gäste teilen sich die meisten Museen (Überlappung 0,78), daher sind wenige Änderungen zu erwarten.
+              10 von 12 — bestanden, aber nicht angeboten: genau auf der Grenze, mit geringer Sicherheit des Bewerters (2,4 von 5),
+              und zwei gegensätzliche Gäste teilten sich die meisten Museen (Überlappung 0,78), die Bearbeitung änderte also wenig.
             </td>
           </tr>
           <tr>

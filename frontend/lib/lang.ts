@@ -57,8 +57,6 @@ export const DICT: Record<string, { de: string; fr: string }> = {
   // Labels from lib/api.ts
   "Restaurants & bars": { de: "Restaurants & Bars", fr: "Restaurants et bars" },
   "Live music & nightlife": { de: "Livemusik & Nachtleben", fr: "Musique live et vie nocturne" },
-  "Daytime: museums & galleries": { de: "Tagsüber: Museen & Galerien", fr: "En journée : musées et galeries" },
-  "Museums & galleries": { de: "Museen & Galerien", fr: "Musées et galeries" },
   "Aggregate taste affinity from Qloo, not a review.": {
     de: "Aggregierte Geschmacksaffinität aus Qloo, keine Rezension.",
     fr: "Affinité de goût agrégée issue de Qloo, pas un avis.",

@@ -27,7 +27,7 @@ export default async function Home({ searchParams }: { searchParams: Search }) {
     lines: [3, 5, 10].includes(lines) ? lines : 5,
     own: {
       city: one(q.city),
-      category: one(q.kind) === "nightlife" ? "nightlife" : one(q.kind) === "museums" ? "museums" : "dining",
+      category: one(q.kind) === "nightlife" ? "nightlife" : "dining",
       favs: many(q.fav),
       ids: many(q.id),
     },

@@ -30,7 +30,7 @@ Links that open straight on a view (state lives in the URL):
 - Both guests side by side: https://your-kind-of-place.vercel.app/?tab=both&ex=0&lines=5
 - Live music & nightlife for an Amy Winehouse fan: https://your-kind-of-place.vercel.app/?tab=own&city=London&kind=nightlife&fav=Amy%20Winehouse&id=10AE6E44-D058-4C1D-818F-FF4B37D069CB
 
-Kinds of place: **Restaurants & bars** (the default and the demo), **Live music & nightlife** (`filter.tags` live_music_venue + night_club; venues, clubs, bars and pubs only) and **Daytime: museums & galleries** (`filter.tags` museum + art_museum + art_gallery). Each was offered only after passing the blind test below; shops (9 of 12), sights & attractions (3 of 12), parks (8), cafés (5) and spa (4) did not pass and are not offered. Adult venues are dropped in every category (Qloo genre, tag or description).
+Kinds of place: **Restaurants & bars** (the default and the demo) and **Live music & nightlife** (`filter.tags` live_music_venue + night_club; venues, clubs, bars and pubs only). Only what passes the blind test below goes into the product: shops (9 of 12), sights & attractions (3 of 12), parks (8), cafés (5) and spa (4) did not pass; museums & galleries passed at 10 of 12 but are left out because two opposite guests shared most museums. Adult venues are dropped in every category (Qloo genre, tag or description).
 
 ### Dining filter
 
@@ -38,13 +38,13 @@ For the default list and the guest's matches: Qloo's restaurant tag (`urn:tag:ge
 
 ## What we measured, and what we don't claim
 
-Measured once before building (25 October 2026; San Francisco, Austin and London; 12 pairs of deliberately opposite guests; restaurant-tag query without the dining filter):
+Blind test with 12 pairs of deliberately opposite guests in San Francisco, Austin and London, first on 25 October 2026 and again on 30 October with the product's dining filter and price-level rule:
 
-- **Blind matching:** a separate model, with no hint of Qloo, matched the two lists to the two guest profiles correctly in **11 of 12** cases.
-- **Stability:** the same queries 14 minutes later overlapped **0.99**.
-- **Default vs. taste:** a guest's list and the no-signal list overlapped **0.12**.
+- **Blind matching:** a separate model, with no hint of Qloo, matched the two lists to the two guest profiles correctly in **10 of 12** cases (11 of 12 without the price-level rule).
+- **Stability** (first run): the same queries 14 minutes later overlapped **0.99**.
+- **Default vs. taste** (first run): a guest's list and the no-signal list overlapped **0.12**.
 
-**Categories, same blind test, threshold 10 of 12 set before the run:** live music & nightlife **10 of 12** (offered), shops 9 of 12, sights & attractions 3 of 12 (not offered). Restaurants & bars with the level rule (price level 3+, no pubs): **10 of 12** (passed; 11 of 12 without the rule). Daytime: museums & galleries **10 of 12** (offered; low judge confidence, two opposite guests share most museums), parks & gardens 8 of 12, cafés 5 of 12, spa & wellness 4 of 12 (not offered).
+**Categories, same blind test, threshold 10 of 12 set before the run:** live music & nightlife **10 of 12** (offered); museums & galleries 10 of 12 (passed, left out: low judge confidence and two opposite guests shared most museums); parks & gardens 8, shops 9, cafés 5, spa & wellness 4, sights & attractions 3 of 12 (not offered).
 
 **Limits:** Fits this guest, not 'better'. Even similar tastes get different lists, so we don't claim anything about similar guests. The judge was a language model, and 12 cases is a small sample.
 

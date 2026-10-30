@@ -678,7 +678,7 @@ const MESSAGE: Record<Lang, {
   en: {
     dear: (n) => `Dear ${n},`,
     welcome: (h, c, w, x) => `Welcome to ${h}. For your stay in ${c}${w ? ` from ${w}` : ""} we have picked a few ${x} we think you will enjoy:`,
-    what: { dining: "restaurants and bars", nightlife: "places for live music and a night out", museums: "museums and galleries" },
+    what: { dining: "restaurants and bars", nightlife: "places for live music and a night out" },
     guest: "guest",
     ourHotel: "our hotel",
     ask: "Just let us know if you would like us to book or arrange anything.",
@@ -689,7 +689,7 @@ const MESSAGE: Record<Lang, {
   de: {
     dear: (n) => `Guten Tag ${n},`,
     welcome: (h, c, w, x) => `willkommen ${h === "unserem Hotel" ? "in unserem Hotel" : `im ${h}`}. Für Ihren Aufenthalt in ${c}${w ? ` ab dem ${w}` : ""} haben wir einige ${x} ausgewählt, die Ihnen gefallen dürften:`,
-    what: { dining: "Restaurants und Bars", nightlife: "Orte für Livemusik und einen Abend in der Stadt", museums: "Museen und Galerien" },
+    what: { dining: "Restaurants und Bars", nightlife: "Orte für Livemusik und einen Abend in der Stadt" },
     guest: "lieber Gast",
     ourHotel: "unserem Hotel",
     ask: "Sagen Sie uns gern Bescheid, wenn wir etwas für Sie reservieren oder organisieren dürfen.",
@@ -700,7 +700,7 @@ const MESSAGE: Record<Lang, {
   fr: {
     dear: (n) => `Bonjour ${n},`,
     welcome: (h, c, w, x) => `bienvenue à ${h}. Pour votre séjour à ${c}${w ? ` à partir du ${w}` : ""}, nous avons choisi quelques ${x} qui devraient vous plaire :`,
-    what: { dining: "restaurants et bars", nightlife: "lieux de musique live et de sortie", museums: "musées et galeries" },
+    what: { dining: "restaurants et bars", nightlife: "lieux de musique live et de sortie" },
     guest: "cher client",
     ourHotel: "notre hôtel",
     ask: "N’hésitez pas à nous demander si vous souhaitez que nous réservions ou organisions quoi que ce soit.",

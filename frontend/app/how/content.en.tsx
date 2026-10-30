@@ -111,14 +111,17 @@ export default function HowEN() {
       </p>
 
       <h2>What we measured</h2>
-      <p>One test before building, on 25 October 2026, in San Francisco, Austin and London, with 12 pairs of opposite guests:</p>
+      <p>
+        A blind test with 12 pairs of opposite guests in San Francisco, Austin and London, first on 25 October 2026 and again
+        on 30 October with the price-level rule the product uses:
+      </p>
       <table>
         <tbody>
           <tr>
             <th>Blind matching</th>
             <td>
               A separate model saw two lists and two guest profiles, with no hint of Qloo, and matched them correctly in{" "}
-              <strong>11 of 12</strong> cases.
+              <strong>10 of 12</strong> cases (11 of 12 without the price-level rule).
             </td>
           </tr>
           <tr>
@@ -137,7 +140,8 @@ export default function HowEN() {
         </tbody>
       </table>
       <p className="label">
-        The test ran on the restaurant-tag query without the dining filter above. The judge was a language model, not a person;
+        The 10 of 12 run used the product&apos;s dining filter and price-level rule; the first run (11 of 12) used the
+        restaurant-tag query without them. Stability and overlap are from the first run. The judge was a language model, not a person;
         12 cases is a small sample, and the profiles were deliberately opposite.
       </p>
 
@@ -145,33 +149,29 @@ export default function HowEN() {
       <p>
         Before adding a category we ran the same blind test on it (written down before the run: 12 pairs of opposite guests
         in San Francisco, Austin and London, a separate model matching two lists to two guests without knowing about Qloo,
-        pass at 10 of 12 or better; a list with fewer than 8 places counts as a miss).
+        pass at 10 of 12 or better; a list with fewer than 8 places counts as a miss). Only what passes goes into the product;
+        every result, passed or not, is listed here.
       </p>
       <table>
         <tbody>
           <tr>
             <th>Restaurants &amp; bars</th>
-            <td>11 of 12 (the first test, above) — offered, and the demo path</td>
-          </tr>
-          <tr>
-            <th>Restaurants &amp; bars at level 3 or above</th>
             <td>
-              <strong>10 of 12</strong> — the same test with the level rule above (price level 3+, no pubs). Passed, one case
-              fewer than without the rule: on an upscale list two opposite guests share more places.
+              <strong>10 of 12</strong> with the price-level rule (11 of 12 without the price-level rule) — offered, and the demo
+              path
             </td>
           </tr>
           <tr>
             <th>Live music &amp; nightlife</th>
             <td>
-              <strong>10 of 12</strong> — offered under “Your guest (and list)” and “Arrivals”. Right on the line, so treat it as
-              the weaker of the two.
+              <strong>10 of 12</strong> — offered under “Your guest (and list)” and “Morning report”. Right on the line.
             </td>
           </tr>
           <tr>
             <th>Daytime: museums &amp; galleries</th>
             <td>
-              <strong>10 of 12</strong> — offered. Right on the line and with low judge confidence (2.4 of 5): two opposite
-              guests share most museums (overlap 0.78), so expect few changes.
+              10 of 12 — passed, but not offered: right on the line, with low judge confidence (2.4 of 5), and two opposite
+              guests shared most museums (overlap 0.78), so the edit changed little.
             </td>
           </tr>
           <tr>

@@ -417,11 +417,6 @@ def test_not_considered_items_must_be_written_in_the_note():
     assert not written_in("vegetarian", note)
 
 
-def test_daytime_keeps_museums_and_galleries_only():
-    places = [place("m", "museum"), place("a", "art_gallery"), place("n", "natural_history_museum"),
-              place("p", "park"), place("h", "hotel"), place("c", "restaurant:cafe")]
-    assert [p["entity_id"] for p in rl.dining(places, "museums")] == ["m", "a", "n"]
-
 
 def test_notes_and_agent_fallback_speak_the_chosen_language():
     p = place("x", "pub", "Soho", [{"entity_id": "A", "score": 0.9}])
