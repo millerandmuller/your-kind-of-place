@@ -85,7 +85,7 @@ export default function How() {
         own list if one is pasted. Its tool calls are shown
         under the result; its sentence is checked on the server and replaced by a plain summary if it names a number the tools
         didn&apos;t return or compares the list to anything. The same capability is an MCP tool at{" "}
-        <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget)</code>.
+        <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget, hotel_list[])</code>.
       </p>
 
       <h2>6. Tomorrow&apos;s arrivals</h2>

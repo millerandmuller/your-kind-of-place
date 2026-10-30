@@ -17,7 +17,7 @@ Built for the concierge and guest-experience team, who keep the last word: every
 5. **Margin notes.** Inserts name the favourite that Qloo's explainability score says drove the place, plus Qloo's neighbourhood and place type. Strikes say "Not among this guest's top 50 taste matches".
 6. **Agent.** A Google ADK agent (Claude via LiteLLM) takes free text such as "Guest checking in tonight: loves Amy Winehouse and Dr. Martens", picks the favourites, asks when unclear and runs the same tools: `resolve_interest`, `default_list`, `taste_places`, `redline`, `explain_place`. Its tool calls are shown in the UI.
 7. **Tomorrow's arrivals.** Paste up to six arrival notes ("Room 204: Ms Patel. Loves Amy Winehouse, always in Dr. Martens. Nut allergy."). A second ADK agent records up to three favourites per note via a `record_guest` tool; the server keeps only favourites literally written in the note and resolves them in Qloo. The concierge confirms them, then gets a morning report with one redlined list per guest (copy or print). `POST /api/arrivals/read`, `POST /api/arrivals/report`.
-8. **MCP.** The same capability as an MCP tool at `/mcp/`: `redline(city, interests[], budget)`.
+8. **MCP.** The same capability as an MCP tool at `https://redline-api-588508999301.us-east1.run.app/mcp/`: `redline(city, interests[], budget, hotel_list[])`. A hotel's existing concierge or messaging agent can call it with the hotel's own list and the guest's favourites and get the struck and inserted places with their notes back.
 
 Cities: London, San Francisco, New York, Austin, Berlin.
 
@@ -40,7 +40,7 @@ Measured once before building (25 October 2026; San Francisco, Austin and London
 ```
 Next.js (Vercel) ──/api rewrite──▶ FastAPI + ADK agent (Cloud Run) ──▶ Qloo hackathon.api.qloo.com
                                         ├─ Claude via LiteLLM (agent only)
-                                        ├─ /mcp  redline(city, interests[], budget)
+                                        ├─ /mcp  redline(city, interests[], budget, hotel_list[])
                                         └─ private file cache (never in this repo)
 ```
 
@@ -61,7 +61,7 @@ cd backend && python3.12 -m venv .venv && .venv/bin/pip install -r requirements.
 cd ../frontend && npm ci && API_URL=http://127.0.0.1:8080 npm run dev
 ```
 
-Without an LLM key the form, the redline and MCP still work; only "Ask the agent" needs a model.
+Without an LLM key the form, the redline and MCP still work; only "Ask the agent" and reading arrival notes need a model.
 
 ## Data
 
