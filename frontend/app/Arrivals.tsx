@@ -196,7 +196,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               <div className="guest-card" key={gi}>
                 <strong>{g.label}</strong> <span className="label">{g.text}</span>
                 <div className="chips">
-                  {g.favourites.length === 0 && <span className="label">No band, show, film, brand or game in this note.</span>}
+                  {g.favourites.length === 0 && !manual && <span className="label">No band, show, film, brand or game in this note.</span>}
                   {g.favourites.map((f, fi) =>
                     f.status === "ok" ? (
                       <button
