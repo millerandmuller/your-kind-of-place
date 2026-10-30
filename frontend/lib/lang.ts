@@ -50,6 +50,14 @@ export const DICT: Record<string, { de: string; fr: string }> = {
     fr: "Les clients d'exemple sont fictifs. Les noms d'artistes, de séries et de marques décrivent seulement ce qu'aime un client ; aucune affiliation avec eux ni aucun soutien de leur part n'est sous-entendu.",
   },
 
+  // Videos
+  "Play explainer video": { de: "Erklärvideo abspielen", fr: "Lire la vidéo explicative" },
+  "Explainer video": { de: "Erklärvideo", fr: "Vidéo explicative" },
+  "Partially made with AI": { de: "Teilweise mit KI erstellt", fr: "Réalisée en partie avec l'IA" },
+  "Play concierge video": { de: "Concierge-Video abspielen", fr: "Lire la vidéo du concierge" },
+  "Concierge welcome": { de: "Begrüßung durch den Concierge", fr: "Accueil du concierge" },
+  "Video partially made with AI": { de: "Video teilweise mit KI erstellt", fr: "Vidéo réalisée en partie avec l'IA" },
+
   // Client demo: Montreonto Hotels (fictional)
   "Client demo": { de: "Kunden-Demo", fr: "Démo client" },
   "A fictional hotel · created for this demo": {

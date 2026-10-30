@@ -6,6 +6,7 @@ import Arrivals from "./Arrivals";
 import Nav from "./Nav";
 import MapLink from "./MapLink";
 import Footer from "./Footer";
+import Video from "./Video";
 import { LangContext, useLang, useT } from "./LangContext";
 import { LANGS, LOCALE, translate, type Lang, type Vars } from "@/lib/lang";
 import {
@@ -193,13 +194,28 @@ function Editor({ start }: { start: StartState }) {
   return (
     <main className="wrap">
       <Nav />
-      <header className="hero noprint">
-        <h1>{rich(t("Every guest gets the *same list*. We edit it into **their kind of place**."))}</h1>
-        <p>
-          {t(
-            "The hotel's list of restaurants and bars, edited per guest in track changes, with a reason from Qloo's taste data on every change.",
-          )}
-        </p>
+      <header className="hero hero-video noprint">
+        <div>
+          <h1>{rich(t("Every guest gets the *same list*. We edit it into **their kind of place**."))}</h1>
+          <p>
+            {t(
+              "The hotel's list of restaurants and bars, edited per guest in track changes, with a reason from Qloo's taste data on every change.",
+            )}
+          </p>
+        </div>
+        <Video
+          src="/media/explainer.mp4"
+          poster="/media/explainer_poster.jpg"
+          tracks={[{ lang: "en", src: "/media/explainer_en.vtt", label: "English" }]}
+          subtitles="en"
+          playLabel={t("Play explainer video")}
+          variant="cream"
+          caption={
+            <>
+              {t("Explainer video")} · <span className="ai">{t("Partially made with AI")}</span>
+            </>
+          }
+        />
       </header>
 
       <div className="controls noprint">

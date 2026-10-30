@@ -1,0 +1,94 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.300
+Every hotel guest gets the same list of restaurants, the punk rocker and the Bridgerton fan.
+
+2
+00:00:05.300 --> 00:00:07.000
+Same ten places.
+
+3
+00:00:07.000 --> 00:00:13.800
+The concierge knows that's wrong. But with 40 arrivals a day, nobody has time to rewrite it for each guest.
+
+4
+00:00:13.800 --> 00:00:16.300
+So we built Your Kind of Place.
+
+5
+00:00:16.300 --> 00:00:21.200
+It takes the hotel's own list and edits it for one guest, like an editor with a red pen.
+
+6
+00:00:21.200 --> 00:00:23.900
+Guest 1 loves Peaky Blinders and Guinness.
+
+7
+00:00:23.900 --> 00:00:25.200
+Watch the red pen.
+
+8
+00:00:25.200 --> 00:00:32.000
+Places that don't fit this guest are struck out. Places that do are written in, each with a note in the margin saying why.
+
+9
+00:00:32.000 --> 00:00:34.900
+The Swan. Dukes Bar. The Orangery.
+
+10
+00:00:34.900 --> 00:00:39.600
+Every reason comes from Qloo's taste data, not from a language model's imagination.
+
+11
+00:00:39.600 --> 00:00:43.700
+Same hotel, next guest. Charli XCX and Glossier.
+
+12
+00:00:45.600 --> 00:00:48.800
+And after dark, the Amy Winehouse fan gets Camden.
+
+13
+00:00:48.800 --> 00:00:52.000
+Electric Ballroom. The Roundhouse. The Underworld.
+
+14
+00:00:52.000 --> 00:00:57.100
+Before breakfast, the agent reads tomorrow's arrival notes and has a list ready for every guest.
+
+15
+00:00:57.100 --> 00:01:01.000
+What it can't handle, like an allergy, it hands back to the concierge.
+
+16
+00:01:01.000 --> 00:01:05.900
+One tap and it's a message, in the guest's own language, with a map link for every place.
+
+17
+00:01:05.900 --> 00:01:08.200
+We tested Qloo before we built on it.
+
+18
+00:01:08.200 --> 00:01:12.100
+A blind AI judge matched 10 of 12 lists to the right guest.
+
+19
+00:01:12.100 --> 00:01:16.000
+The same question gives the same answer, 99% of the time.
+
+20
+00:01:16.000 --> 00:01:20.900
+And we tested five more kinds of places. Four failed, so they're not in the product.
+
+21
+00:01:20.900 --> 00:01:26.700
+And the concierge stays in charge. Accept a line, reject a line. Every edit is their call.
+
+22
+00:01:26.700 --> 00:01:32.800
+Your guests already told you what they love. Your Kind of Place turns that into the one list they'll actually use.
+
+23
+00:01:32.800 --> 00:01:33.600
+Try it now.
+

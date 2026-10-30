@@ -425,3 +425,28 @@ html[data-theme="night"] .mt-root {
 .foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); }
 .foot p { margin: 0; font-size: 0.78rem; line-height: 1.5; color: var(--muted); max-width: 70ch; }
 .mt-honest + .mt-honest { margin-top: 8px; }
+
+/* --- videos: poster and one play button until clicked ---------------------------------------- */
+.video { margin: 0; }
+.video-frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: #000; }
+.video-frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.video-play {
+  all: unset; cursor: pointer; position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center; box-shadow: 0 8px 24px -8px #0008; transition: transform 0.15s;
+}
+.video-play svg { margin-left: 3px; }
+.video-play:hover { transform: scale(1.06); }
+.video-play:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.video.cream .video-play { background: #f2ede4; color: #1b1a17; }
+.video.gold .video-play { background: #d9a441; color: #0f2440; width: 76px; height: 76px; }
+.video figcaption { font-size: 13px; margin-top: 8px; color: var(--muted); }
+.video figcaption .ai { opacity: 0.55; }
+
+/* Explainer: right of the headline, never pushing it; under it on narrow screens. */
+.hero-video { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 40px; align-items: center; }
+@media (max-width: 900px) { .hero-video { grid-template-columns: 1fr; gap: 18px; } }
+
+/* Concierge: full width of the hotel text, corners like the Montreonto cards, Archivo caption. */
+.mt-intro .video { margin-top: 24px; }
+.mt-intro .video-frame { border-radius: 14px; }
+.mt-intro .video figcaption { font-family: var(--font-ui); color: var(--mt-ink); }

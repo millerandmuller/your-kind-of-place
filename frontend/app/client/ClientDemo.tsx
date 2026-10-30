@@ -7,6 +7,7 @@ import { LangContext } from "../LangContext";
 import MapLink from "../MapLink";
 import Footer, { DISCLAIMER } from "../Footer";
 import Nav from "../Nav";
+import Video from "../Video";
 
 type City = "Toronto" | "Montreal";
 type Guest = { honorific: "Ms." | "Mr."; surname: string; room: string; loves: { name: string; id: string }[] };
@@ -138,6 +139,22 @@ function Demo({
           </p>
           <p className="mt-honest">{t("Places, notes and tags are live Qloo results. Montreonto is fictional.")}</p>
           <p className="mt-honest">{t(DISCLAIMER)}</p>
+          <Video
+            src="/media/concierge_montreonto.mp4"
+            poster="/media/concierge_poster.jpg"
+            tracks={[
+              { lang: "en", src: "/media/concierge_en.vtt", label: "English" },
+              { lang: "fr", src: "/media/concierge_fr.vtt", label: "Français" },
+            ]}
+            subtitles={phoneLang === "fr" ? "fr" : "en"}
+            playLabel={t("Play concierge video")}
+            variant="gold"
+            caption={
+              <>
+                {t("Concierge welcome")} · <span className="ai">{t("Video partially made with AI")}</span>
+              </>
+            }
+          />
         </section>
 
         <div className="mt-phone" aria-label={t("A guest's phone")}>
