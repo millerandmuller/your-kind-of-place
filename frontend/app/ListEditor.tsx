@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Arrivals from "./Arrivals";
+import Nav from "./Nav";
 import {
   api,
   BUDGETS,
@@ -136,18 +137,6 @@ export default function ListEditor({ start }: { start: StartState }) {
     };
   }, [pair, budget, attempt]);
 
-  // The first visit shows the hotel's list, then Guest 1 checks in by themselves.
-  useEffect(() => {
-    if (!results.g1 || touched.current) return;
-    const t = setTimeout(() => {
-      if (touched.current) return;
-      touched.current = true;
-      setAnimate(true);
-      setTab("g1");
-    }, 2600);
-    return () => clearTimeout(t);
-  }, [results.g1]);
-
   const resetDemo = () => {
     setResults((r) => ({ own: r.own }));
     setRejected((r) => ({ own: r.own }));
@@ -182,17 +171,15 @@ export default function ListEditor({ start }: { start: StartState }) {
 
   return (
     <main className="wrap">
-      <header className="top noprint">
-        <div>
-          <h1 className="brand">
-            Your Kind of <span className="ins">Place</span>
-          </h1>
-          <p className="lede">Every hotel guest gets the same list. Your Kind of Place edits it for each guest.</p>
-        </div>
-        <nav className="toplinks">
-          <Link href="/how">How this works</Link>
-          <a href="https://github.com/millerandmuller/your-kind-of-place">Code</a>
-        </nav>
+      <Nav />
+      <header className="hero noprint">
+        <h1>
+          Every guest gets the <em>same list</em>. We edit it into <strong>their kind of place</strong>.
+        </h1>
+        <p>
+          The hotel&apos;s list of restaurants and bars, edited per guest in track changes, with a reason from Qloo&apos;s taste
+          data on every change.
+        </p>
       </header>
 
       <div className="controls noprint">
@@ -244,7 +231,7 @@ export default function ListEditor({ start }: { start: StartState }) {
         <TabButton id="g2" tab={tab} choose={choose} kicker="Guest 2, same hotel" title={pair ? guestName(pair.guest2) : "…"} />
         <TabButton id="both" tab={tab} choose={choose} kicker="Compare" title="Guest 1 | Guest 2" />
         <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest (and list)" />
-        <TabButton id="arrivals" tab={tab} choose={choose} kicker="Tomorrow" title="Arrivals → morning report" />
+        <TabButton id="arrivals" tab={tab} choose={choose} kicker="Tomorrow's arrivals" title="Morning report" />
       </div>
 
       {error && (
@@ -308,9 +295,11 @@ export default function ListEditor({ start }: { start: StartState }) {
                 {current ? ` in ${current.city}` : ""}
               </h2>
               <span className="for">
-                {tab === "default" || !current
+                {!current
                   ? "For every guest"
-                  : `For a guest who loves ${current.guest.map((g) => (g.kind ? `${g.name} (${g.kind.replace("_", " ")})` : g.name)).join(" + ")}`}
+                  : tab === "default"
+                    ? "Left: the list every guest gets. Right: the same list for Guest 1."
+                    : `For a guest who loves ${current.guest.map((g) => (g.kind ? `${g.name} (${g.kind.replace("_", " ")})` : g.name)).join(" + ")}`}
               </span>
             </div>
             <div>
@@ -329,7 +318,7 @@ export default function ListEditor({ start }: { start: StartState }) {
             {tab === "own" && current?.source === "hotel" && ignoredLines(hotelText) > 0
               ? `. ${ignoredLines(hotelText)} ${ignoredLines(hotelText) === 1 ? "line" : "lines"} ignored: only the first 10 are used`
               : ""}
-            {tab === "default" ? "" : ". Red: struck for this guest. Green: added for this guest."}
+            {". Red: struck for this guest. Green: added for this guest."}
           </p>
 
           {!current ? (
@@ -339,19 +328,7 @@ export default function ListEditor({ start }: { start: StartState }) {
               ))}
             </div>
           ) : tab === "default" ? (
-            <ol className="list">
-              {current.default.map((p, i) => (
-                <li className="row" key={p.id}>
-                  <span className="num">{i + 1}</span>
-                  <div className="place">
-                    <div className="name">{p.name}</div>
-                    <MapLink p={p} city={current.city} />
-                    <div className="meta">{meta(p)}</div>
-                  </div>
-                  <span />
-                </li>
-              ))}
-            </ol>
+            <BeforeAfter r={current} />
           ) : (
             <>
               {current.changed === 0 && (
@@ -372,16 +349,21 @@ export default function ListEditor({ start }: { start: StartState }) {
                   : ""}
               </span>
               {tab === "default" && (
-                <button
-                  className="btn ghost"
-                  type="button"
-                  onClick={() => {
-                    setHotelOpen(true);
-                    choose("own");
-                  }}
-                >
-                  Use your hotel&apos;s own list →
-                </button>
+                <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => {
+                      setHotelOpen(true);
+                      choose("own");
+                    }}
+                  >
+                    Use your hotel&apos;s own list
+                  </button>
+                  <button className="btn" type="button" onClick={() => choose("g1")}>
+                    Every reason for Guest 1 →
+                  </button>
+                </span>
               )}
               {tab !== "default" && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -404,6 +386,44 @@ export default function ListEditor({ start }: { start: StartState }) {
         <Link href="/how">How this works</Link>
       </p>
     </main>
+  );
+}
+
+// The first screen: the list every guest gets, and the same list in red pen for Guest 1, no click needed.
+function BeforeAfter({ r }: { r: EditResult }) {
+  return (
+    <div className="ba">
+      <div>
+        <h3>The hotel&apos;s list</h3>
+        <span className="for">every guest</span>
+        <ol className="list compact">
+          {r.default.map((p, i) => (
+            <li className="row" key={p.id}>
+              <span className="num">{i + 1}</span>
+              <div className="place">
+                <div className="name">{p.name}</div>
+                <div className="meta">{meta(p)}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div>
+        <h3>For Guest 1</h3>
+        <span className="for">loves {guestName(r.guest)}</span>
+        <ol className="list compact">
+          {r.lines.map((l) => (
+            <li className={`row ${l.status}`} key={`${l.status}-${l.place.id}`}>
+              <span className="num">{l.status === "insert" ? "+" : ""}</span>
+              <div className="place">
+                <div className="name">{l.place.name}</div>
+                {l.status === "insert" && <div className="cnote">{l.note}</div>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
   );
 }
 

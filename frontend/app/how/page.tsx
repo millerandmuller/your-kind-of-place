@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import Nav from "../Nav";
 
 export const metadata: Metadata = { title: "How Your Kind of Place works" };
 
 export default function How() {
   return (
     <main className="wrap how">
+      <Nav />
       <p>
         <Link href="/">← Back to the list</Link>
       </p>
