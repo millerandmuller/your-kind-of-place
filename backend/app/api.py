@@ -144,6 +144,34 @@ class RateLimiter:
         return True
 
 
+class NoteBody(BaseModel):
+    label: str = Field(default="", max_length=60)
+    text: str = Field(min_length=3, max_length=300)
+
+    @field_validator("text")
+    @classmethod
+    def _text(cls, v: str) -> str:
+        return _clean_text(v, 3)
+
+
+class ReadNotesBody(BaseModel):
+    notes: list[NoteBody] = Field(min_length=1, max_length=6)
+
+
+class ArrivalGuest(BaseModel):
+    label: str = Field(default="", max_length=60)
+    interests: list[InterestBody] = Field(default_factory=list, max_length=3)
+
+
+class ReportBody(BaseModel):
+    city: str = Field(min_length=2, max_length=40)
+    budget: int = 5
+    guests: list[ArrivalGuest] = Field(min_length=1, max_length=6)
+    hotel_list: list[str] | None = Field(default=None, max_length=40)
+
+    _hotel = field_validator("hotel_list")(RedlineBody._lines.__func__)
+
+
 def create_app(settings: Settings | None = None, redliner: Redliner | None = None) -> FastAPI:
     settings = settings or load_settings()
     state: dict[str, Any] = {}
@@ -261,6 +289,47 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
             raise qloo_http_error(exc) from exc
         except Exception as exc:  # noqa: BLE001 — model/ADK trouble must not surface as a bare 500
             raise HTTPException(503, f"The agent couldn't run: {exc.__class__.__name__}") from exc
+
+    @app.post("/api/arrivals/read")
+    async def arrivals_read(body: ReadNotesBody, request: Request) -> dict[str, Any]:
+        """The agent reads tomorrow's notes; favourites come back for the concierge to confirm."""
+        guard(request)
+        from .arrivals import read_notes
+
+        try:
+            return await asyncio.wait_for(
+                read_notes(state["redliner"], settings, [n.model_dump() for n in body.notes]), timeout=50
+            )
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(504, "Reading the notes took too long. Try fewer guests.") from exc
+        except QlooError as exc:
+            raise qloo_http_error(exc) from exc
+        except Exception as exc:  # noqa: BLE001 — model/ADK trouble must not surface as a bare 500
+            raise HTTPException(503, f"The agent couldn't read the notes: {exc.__class__.__name__}") from exc
+
+    @app.post("/api/arrivals/report")
+    async def arrivals_report(body: ReportBody, request: Request) -> dict[str, Any]:
+        """One redlined list per confirmed guest: the morning report."""
+        guard(request)
+        from .arrivals import morning_report
+
+        try:
+            out = await asyncio.wait_for(
+                morning_report(
+                    state["redliner"], body.city, body.budget,
+                    [g.model_dump() for g in body.guests], body.hotel_list,
+                ),
+                timeout=50,
+            )
+        except UnknownCity as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(504, "Qloo is slow right now. Try again in a moment.") from exc
+        except QlooError as exc:
+            raise qloo_http_error(exc) from exc
+        for g in out["guests"]:
+            labelled(g["result"])
+        return out
 
     app.mount("/mcp", mcp.streamable_http_app())
     return app

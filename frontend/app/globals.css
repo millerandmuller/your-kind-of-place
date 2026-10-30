@@ -137,6 +137,18 @@ ol.list { list-style: none; margin: 8px 0 0; padding: 0; }
 .hotel-list textarea { min-height: 120px; }
 .hotel-list .fields { margin-top: 8px; }
 
+/* arrivals */
+.confirm { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.guest-card { display: grid; gap: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 0.85rem; }
+.chip[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); }
+.report { margin-top: 18px; }
+.report-guest { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; break-inside: avoid; }
+.report-guest h3 { font-family: var(--font-serif), Georgia, serif; font-weight: 500; font-size: 1.1rem; margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.list.compact .row.strike .name { color: var(--red); text-decoration: line-through; }
+@media print { .report-guest { page-break-inside: avoid; } }
+
 /* own guest */
 .own { margin-top: 18px; display: grid; gap: 14px; }
 .own .fields { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }

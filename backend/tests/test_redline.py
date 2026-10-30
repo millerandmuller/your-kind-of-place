@@ -276,3 +276,23 @@ def test_in_house_lines_and_partial_words_never_match(tmp_path):
         body = client.post("/api/redline", json={"city": "London", "budget": 5, "interests": [{"name": "Amy Winehouse"}],
                                                  "hotel_list": ["Our rooftop bar", "our rooftop bar & grill", "Hour Rooftop"]}).json()
         assert [p["in_qloo"] for p in body["default"]] == [False, False, True]
+
+
+def test_favourites_must_be_written_in_the_note():
+    from app.arrivals import in_note
+
+    note = "Room 204, Ms Patel: loves Amy Winehouse, always in Dr. Martens; nut allergy"
+    assert in_note("Amy Winehouse", note) and in_note("dr martens", note)
+    assert not in_note("Taylor Swift", note) and not in_note("Amy", "Amyx loves jazz")
+
+
+def test_morning_report_redlines_each_confirmed_guest(tmp_path):
+    s = settings(tmp_path)
+    qloo = QlooClient(s, FileCache(tmp_path), transport=httpx.MockTransport(fake_qloo))
+    with TestClient(create_app(s, Redliner(qloo, 10))) as client:
+        body = client.post("/api/arrivals/report", json={"city": "London", "budget": 5, "guests": [
+            {"label": "Room 204", "interests": [{"name": "Amy Winehouse"}]},
+            {"label": "Room 310", "interests": []}]}).json()
+        assert [g["label"] for g in body["guests"]] == ["Room 204", "Room 310"]
+        assert body["guests"][0]["result"]["status"] == "ok" and body["guests"][0]["result"]["changed"] == 5
+        assert body["guests"][1]["result"]["status"] == "skipped"

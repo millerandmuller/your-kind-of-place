@@ -88,6 +88,15 @@ export default function How() {
         <code>https://redline-api-588508999301.us-east1.run.app/mcp/</code>: <code>redline(city, interests[], budget)</code>.
       </p>
 
+      <h2>6. Tomorrow&apos;s arrivals</h2>
+      <p>
+        Under “Arrivals → morning report” a concierge pastes up to six arrival notes as the front desk or CRM wrote them. A
+        second ADK agent reads them and calls <code>record_guest</code> once per note with up to three favourites. The server
+        keeps a favourite only if it is literally written in that note, then resolves each in Qloo. The concierge confirms or
+        removes every favourite (and picks when a name is ambiguous); only then is each guest&apos;s list redlined with the same
+        rules as above. The morning report can be copied or printed.
+      </p>
+
       <h2>What we measured</h2>
       <p>One test before building, on 25 October 2026, in San Francisco, Austin and London, with 12 pairs of opposite guests:</p>
       <table>

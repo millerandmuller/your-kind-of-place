@@ -67,6 +67,26 @@ export type DemoPair = { city: string; guest1: DemoGuest[]; guest2: DemoGuest[] 
 
 export type InterestIn = { name: string; id?: string };
 
+export type FoundFavourite = {
+  query: string;
+  status: "ok" | "clarify" | "not_found";
+  entity?: Interest;
+  question?: string;
+  options?: Option[];
+  message?: string;
+};
+export type ArrivalRead = {
+  status: "ok";
+  guests: { label: string; text: string; favourites: FoundFavourite[] }[];
+  trace: TraceStep[];
+};
+export type MorningReport = {
+  status: "ok";
+  city: string;
+  budget: number;
+  guests: { label: string; result: Redline | NeedsInput | { status: "skipped"; message: string } }[];
+};
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -90,6 +110,13 @@ export const api = {
     call<Redline | NeedsInput>("/api/redline", {
       method: "POST",
       body: JSON.stringify({ city, interests, budget, hotel_list: hotelList?.length ? hotelList : undefined }),
+    }),
+  arrivalsRead: (notes: { label: string; text: string }[]) =>
+    call<ArrivalRead>("/api/arrivals/read", { method: "POST", body: JSON.stringify({ notes }) }),
+  arrivalsReport: (city: string, budget: number, guests: { label: string; interests: InterestIn[] }[], hotelList?: string[]) =>
+    call<MorningReport>("/api/arrivals/report", {
+      method: "POST",
+      body: JSON.stringify({ city, budget, guests, hotel_list: hotelList?.length ? hotelList : undefined }),
     }),
   agent: (text: string, city: string, budget: number, hotelList?: string[]) =>
     call<Redline | NeedsInput | AgentError>("/api/agent", {

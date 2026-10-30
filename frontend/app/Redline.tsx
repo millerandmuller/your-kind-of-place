@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Arrivals from "./Arrivals";
 import {
   api,
   BUDGETS,
@@ -24,7 +25,7 @@ import {
 
 type AffinityRank = { rank_from_bottom: number; of: number };
 
-type Tab = "default" | "g1" | "g2" | "both" | "own";
+type Tab = "default" | "g1" | "g2" | "both" | "own" | "arrivals";
 
 function meta(p: Place): string {
   if (p.in_qloo === false) return "Not matched to a restaurant or bar in Qloo · kept as is";
@@ -46,6 +47,7 @@ export default function Redline() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [hotelOpen, setHotelOpen] = useState(false);
+  const [hotelText, setHotelText] = useState("");
   const [rejected, setRejected] = useState<Partial<Record<Tab, Set<string>>>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [animate, setAnimate] = useState(false);
@@ -106,7 +108,8 @@ export default function Redline() {
     setTab(t);
   };
 
-  const current = tab === "default" ? results.g1 : tab === "both" ? undefined : results[tab];
+  const current =
+    tab === "default" ? results.g1 : tab === "both" || tab === "arrivals" ? undefined : results[tab];
   const rej = useMemo(() => rejected[tab] ?? new Set<string>(), [rejected, tab]);
   const toggle = (strikeId: string, reject: boolean) =>
     setRejected((r) => {
@@ -185,6 +188,7 @@ export default function Redline() {
         <TabButton id="g2" tab={tab} choose={choose} kicker="Guest 2, same hotel" title={pair ? guestName(pair.guest2) : "…"} />
         <TabButton id="both" tab={tab} choose={choose} kicker="Compare" title="Guest 1 | Guest 2" />
         <TabButton id="own" tab={tab} choose={choose} kicker="Try your own" title="Your guest (and list)" />
+        <TabButton id="arrivals" tab={tab} choose={choose} kicker="Tomorrow" title="Arrivals → morning report" />
       </div>
 
       {error && (
@@ -203,10 +207,23 @@ export default function Redline() {
         </p>
       )}
 
+      {tab === "arrivals" && (
+        <Arrivals
+          budget={budget}
+          hotelLines={hotelText
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .slice(0, 10)}
+        />
+      )}
+
       {tab === "own" && (
         <OwnGuest
           budget={budget}
           hotelOpen={hotelOpen}
+          hotelText={hotelText}
+          setHotelText={setHotelText}
           onStart={() => setResults((x) => ({ ...x, own: undefined }))}
           onResult={(r) => {
             setAnimate(true);
@@ -221,7 +238,7 @@ export default function Redline() {
         <SideBySide a={g1} b={g2} ra={rejected.g1 ?? none} rb={rejected.g2 ?? none} share={shareCount ?? 0} />
       )}
 
-      {tab !== "both" && (tab !== "own" || results.own) && (
+      {tab !== "both" && tab !== "arrivals" && (tab !== "own" || results.own) && (
         <section className={`sheet${animate ? " animate" : ""}`} key={`${tab}-${current?.city}-${current?.budget}-${guestName(current?.guest ?? [])}`}>
           <div className="sheet-head">
             <div>
@@ -524,11 +541,15 @@ function SendOut({ r, rejected }: { r: RedlineResult; rejected: Set<string> }) {
 function OwnGuest({
   budget,
   hotelOpen,
+  hotelText,
+  setHotelText,
   onStart,
   onResult,
 }: {
   budget: number;
   hotelOpen: boolean;
+  hotelText: string;
+  setHotelText: (v: string) => void;
   onStart: () => void;
   onResult: (r: RedlineResult) => void;
 }) {
@@ -539,7 +560,6 @@ function OwnGuest({
   const [busy, setBusy] = useState<"form" | "agent" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [hotelText, setHotelText] = useState("");
   const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[] } | null>(null);
 
   const hotelLines = useCallback(
