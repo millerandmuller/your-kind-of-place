@@ -29,7 +29,7 @@ MAX_KM = 25
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"
 MAX_INTERESTS = 3
 MAX_LIST = 10
-IN_HOUSE = re.compile(r"^\s*(our|my|the hotel'?s?|hotel|in[- ]house|house)\b", re.I)
+IN_HOUSE = re.compile(r"^\s*(our|my|the hotel'?s|hotel'?s|in[- ]house)\b", re.I)
 # A saved answer younger than this is just the same visit; older ones are labelled "cached result".
 CACHED_LABEL_AFTER_S = 600
 

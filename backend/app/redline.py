@@ -190,7 +190,11 @@ def redline(
         i for i, p in enumerate(default) if p["entity_id"] not in taste_set and not p["entity_id"].startswith(UNMATCHED)
     ]
     # least affinity for this guest first; without a score, lowest on the list first
-    strike_pool.sort(key=lambda i: (affinity.get(default[i]["entity_id"], -1.0), -i))
+    strike_pool.sort(
+        key=lambda i: (0, affinity[default[i]["entity_id"]], -i)
+        if default[i]["entity_id"] in affinity
+        else (1, 0.0, -i)  # unscored only after every scored entry
+    )
     insert_pool = [p for p in taste if p["entity_id"] not in default_ids]
     n = max(0, min(budget, len(strike_pool), len(insert_pool)))
     struck = sorted(strike_pool[:n])  # back into list order: the top struck slot gets the best match

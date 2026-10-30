@@ -296,3 +296,15 @@ def test_morning_report_redlines_each_confirmed_guest(tmp_path):
         assert [g["label"] for g in body["guests"]] == ["Room 204", "Room 310"]
         assert body["guests"][0]["result"]["status"] == "ok" and body["guests"][0]["result"]["changed"] == 5
         assert body["guests"][1]["result"]["status"] == "skipped"
+
+
+def test_unscored_entries_are_struck_only_after_scored_ones():
+    default = [place(str(i)) for i in range(4)]
+    out = rl.redline(default, [place(f"x{i}") for i in range(4)], NAMES, budget=2, match_ids=set(),
+                     affinity={"0": 0.9, "1": 0.2, "3": 0.5})
+    assert [l["place"]["id"] for l in out["lines"] if l["status"] == "strike"] == ["1", "3"]
+
+
+def test_house_of_prime_rib_is_not_an_in_house_line():
+    from app.service import IN_HOUSE
+    assert not IN_HOUSE.match("House of Prime Rib") and IN_HOUSE.match("Our rooftop bar")

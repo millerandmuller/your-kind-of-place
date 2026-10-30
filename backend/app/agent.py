@@ -33,6 +33,7 @@ The guest is described in free text. Work in this order and never skip a step:
 Then answer with one or two short sentences: how many of the list's entries changed and why the
 first insert is there, using only the words returned by the tools. Never name a place, a reason or
 a number that no tool returned. Never say a list is "better"; say it fits this guest's taste.
+Unless the hotel's own list was given, call the list "the default list", not "the hotel's list".
 """
 
 

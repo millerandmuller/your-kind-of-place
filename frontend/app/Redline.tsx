@@ -672,8 +672,8 @@ function OwnGuest({
           </button>
         </div>
         <small className="label">
-          Each line is matched to a restaurant or bar in Qloo within 25 km of {city}. Lines it can&apos;t match stay on the list
-          unmarked.
+          Each line is matched to a restaurant or bar in Qloo within 25 km of {city}. Lines it can&apos;t match stay on the list,
+          marked “not matched”.
           {hotelText.split("\n").filter((l) => l.trim()).length > 10 && " Only the first 10 lines are used."}
         </small>
       </details>
