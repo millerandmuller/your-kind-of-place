@@ -41,6 +41,19 @@ never "you" or "your" for the guest.
 """
 
 
+class StepLog(list):
+    """The trace; every appended step is also handed to `on_step` (the live stream to the UI)."""
+
+    def __init__(self, on_step=None):
+        super().__init__()
+        self.on_step = on_step
+
+    def append(self, item):  # noqa: D102
+        super().append(item)
+        if self.on_step:
+            self.on_step(item)
+
+
 class Workspace:
     """What the tools share during one run (the agent never sees raw Qloo payloads)."""
 
@@ -53,7 +66,7 @@ class Workspace:
         self.issues: list[dict[str, Any]] = []
         self.result: dict[str, Any] | None = None
         self.taste: dict[str, dict[str, Any]] = {}
-        self.log: list[dict[str, Any]] = []
+        self.log: list[dict[str, Any]] = StepLog()
         self.text = ""
         self.other: list[str] = []
 
@@ -150,15 +163,22 @@ def adk_model(settings: Settings, model: str | None = None):
 
 
 async def run_agent(
-    redliner: Redliner, settings: Settings, text: str, city: str, budget: int, hotel_lines: list[str] | None = None
+    redliner: Redliner,
+    settings: Settings,
+    text: str,
+    city: str,
+    budget: int,
+    hotel_lines: list[str] | None = None,
+    on_step=None,
 ) -> dict[str, Any]:
-    """Let the agent drive the service; if the main model fails before any tool ran, try the fallback."""
+    """Let the agent drive the service; if the main model fails before any tool ran, try the fallback.
+    `on_step` gets each tool call as it happens."""
     try:
-        return await _run(redliner, settings, settings.llm_model, text, city, budget, hotel_lines)
+        return await _run(redliner, settings, settings.llm_model, text, city, budget, hotel_lines, on_step)
     except _ModelFailed:
         if not settings.llm_fallback_model:
             raise
-        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget, hotel_lines)
+        return await _run(redliner, settings, settings.llm_fallback_model, text, city, budget, hotel_lines, on_step)
 
 
 class _ModelFailed(RuntimeError):
@@ -173,10 +193,12 @@ async def _run(
     city: str,
     budget: int,
     hotel_lines: list[str] | None = None,
+    on_step=None,
 ) -> dict[str, Any]:
     trace = start_trace()
     ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5, hotel_lines)
     ws.text = text
+    ws.log.on_step = on_step
     agent = LlmAgent(
         name="concierge",
         model=adk_model(settings, model),

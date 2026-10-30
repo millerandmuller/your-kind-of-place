@@ -33,7 +33,12 @@ export type Line = {
 
 export type Interest = { id: string; name: string; kind: string };
 
-export type Option = { id: string; name: string; kind: string; description: string };
+export type Option = { id: string; name: string; kind: string; description: string; year?: number | null };
+
+/** "film, 2021" — kind plus year, so two "Dune" films can be told apart. */
+export function optionKind(o: Option): string {
+  return [o.kind.replace("_", " "), o.year].filter(Boolean).join(", ");
+}
 export type Issue =
   | { kind: "clarify"; field: string; query: string; question: string; options: Option[] }
   | { kind: "not_found"; field: string; query: string; message: string };
@@ -104,6 +109,44 @@ export type MorningReport = {
   }[];
 };
 
+/** The agent run as a stream: `onStep` gets each tool call while it happens. */
+export async function agentStream(
+  body: { text: string; city: string; budget: number; hotel_list?: string[] },
+  onStep: (s: TraceStep) => void,
+): Promise<EditResult | NeedsInput | AgentError> {
+  const res = await fetch("/api/agent/stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok || !res.body) {
+    let detail = `Something went wrong (${res.status}).`;
+    try {
+      const j = await res.json();
+      if (typeof j.detail === "string") detail = j.detail;
+    } catch {}
+    throw new Error(detail);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value) buf += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      const msg = JSON.parse(line);
+      if (msg.step) onStep(msg.step);
+      if (msg.result) return msg.result;
+      if (msg.error) throw new Error(msg.error.detail ?? "The agent couldn't finish.");
+    }
+    if (done) throw new Error("The agent stopped without an answer. Try the form instead.");
+  }
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -158,7 +201,7 @@ export const CATEGORIES: { id: Category; label: string }[] = [
 ];
 export const categoryLabel = (c?: Category) => (c === "nightlife" ? "Live music & nightlife" : "Restaurants & bars");
 
-export const CITIES = ["London", "San Francisco", "New York", "Austin", "Berlin"];
+export const CITIES = ["London", "San Francisco", "New York", "Austin"];
 export const BUDGETS = [3, 5, 10];
 export const LABEL = "Aggregate taste affinity from Qloo, not a review.";
 export const HOTEL_LABEL = "Your hotel's list: each line matched to a restaurant or bar in Qloo; lines it can't match are kept as is";
@@ -167,7 +210,6 @@ export const SAMPLE_LISTS: Record<string, string[]> = {
   "New York": ["Katz's Delicatessen", "Balthazar", "Carbone", "Russ & Daughters", "Le Bernardin", "Minetta Tavern", "The Dead Rabbit", "Via Carota"],
   "San Francisco": ["Zuni Cafe", "Tartine Bakery", "House of Prime Rib", "Swan Oyster Depot", "State Bird Provisions", "Foreign Cinema", "Tosca Cafe"],
   Austin: ["Franklin Barbecue", "Uchiko", "Odd Duck", "Matt's El Rancho", "Veracruz All Natural", "Jeffrey's", "The Driskill Bar"],
-  Berlin: ["Borchardt", "Katz Orange", "Markthalle Neun", "Curry 36", "Lode & Stijn", "Prater Garten", "Clärchens Ballhaus"],
 };
 export const DEFAULT_LABEL =
   "Default list: the city's top places with no taste signal (stands in for the hotel's list)";

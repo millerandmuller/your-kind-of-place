@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   api,
   CATEGORIES,
@@ -14,6 +14,7 @@ import {
   type Interest,
   type MorningReport,
   type Option,
+  optionKind,
   type EditResult,
 } from "@/lib/api";
 
@@ -23,6 +24,10 @@ const SAMPLE = [
   "Room 112: Tom, business trip, rewatching Peaky Blinders, drinks Guinness. Quiet room please.",
   "Room 415: Sophie, here for a concert. Charli XCX superfan, Glossier everything.",
 ].join("\n");
+
+function extraNotes(text: string): number {
+  return Math.max(0, text.split("\n").filter((l) => l.trim().length >= 3).length - 6);
+}
 
 function parse(text: string): { label: string; text: string }[] {
   return text
@@ -62,6 +67,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState<string | null>(null);
   const [adding, setAdding] = useState<Record<number, string>>({});
+  const inFlight = useRef(false);  // a double click must not run the agent twice
 
   const key = (g: number, f: number) => `${g}:${f}`;
 
@@ -102,6 +108,8 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
       setErr("Paste at least one arrival note, one guest per line.");
       return;
     }
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy("read");
     setErr(null);
     setRead(null);
@@ -120,12 +128,14 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
     } catch (e) {
       byHand(`The agent couldn't read the notes (${(e as Error).message}) Add each guest's favourites by hand below.`);
     } finally {
+      inFlight.current = false;
       setBusy(null);
     }
   };
 
   const buildReport = async () => {
-    if (!read) return;
+    if (!read || inFlight.current) return;
+    inFlight.current = true;
     setBusy("report");
     setErr(null);
     setCopied(false);
@@ -142,6 +152,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
     } catch (e) {
       setErr((e as Error).message);
     } finally {
+      inFlight.current = false;
       setBusy(null);
     }
   };
@@ -174,7 +185,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
           </span>
           <span className="label" style={{ margin: 0 }}>
             {hotelLines.length ? `Using your hotel's list (${hotelLines.length} lines, from “Your guest”)` : "Using the city's default list"}
-            {` · swap budget ${budget}`}
+            {` · up to ${budget} lines change`}
           </span>
         </div>
         <div className="fields">
@@ -190,6 +201,11 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
             Sample arrivals
           </button>
         </div>
+        {extraNotes(text) > 0 && (
+          <p className="err">
+            {extraNotes(text)} {extraNotes(text) === 1 ? "note" : "notes"} will be ignored: up to 6 guests per report.
+          </p>
+        )}
         <div className="fields">
           <button className="btn" type="button" disabled={busy !== null} onClick={readNotes}>
             {busy === "read" ? "Agent is reading the notes…" : "1. Read the notes"}
@@ -236,9 +252,17 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                             aria-pressed={picked[key(gi, fi)]?.id === o.id}
                             onClick={() => toggle(key(gi, fi), fromOption(o))}
                           >
-                            {o.name} <span className="label">({o.kind.replace("_", " ")})</span>
+                            {o.name} <span className="label">({optionKind(o)})</span>
                           </button>
                         ))}
+                        <button
+                          type="button"
+                          className="chip"
+                          aria-pressed={!picked[key(gi, fi)]}
+                          onClick={() => setPicked((p) => ({ ...p, [key(gi, fi)]: null }))}
+                        >
+                          None of these
+                        </button>
                       </span>
                     ) : (
                       <span key={fi} className="label">

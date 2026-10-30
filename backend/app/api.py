@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -12,7 +13,7 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from .cache import FileCache
@@ -308,6 +309,44 @@ def create_app(settings: Settings | None = None, redliner: Redliner | None = Non
             raise qloo_http_error(exc) from exc
         except Exception as exc:  # noqa: BLE001 — model/ADK trouble must not surface as a bare 500
             raise HTTPException(503, f"The agent couldn't run: {exc.__class__.__name__}") from exc
+
+    @app.post("/api/agent/stream")
+    async def agent_stream(body: AgentBody, request: Request) -> StreamingResponse:
+        """The same agent run, as newline-delimited JSON: one {"step"} per tool call as it happens,
+        then {"result"} or {"error"}. Lets the UI show what the agent is doing while it works."""
+        llm_guard(request)
+        from .agent import run_agent
+
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def work() -> None:
+            try:
+                out = await asyncio.wait_for(
+                    run_agent(state["redliner"], settings, body.text, body.city, body.budget, body.hotel_list,
+                              on_step=lambda s: queue.put_nowait({"step": s})),
+                    timeout=52,
+                )
+                queue.put_nowait({"result": guard_agent_text(labelled(out))})
+            except asyncio.TimeoutError:
+                queue.put_nowait({"error": {"status": 504, "detail": "The agent took too long. Try the form instead."}})
+            except QlooError as exc:
+                err = qloo_http_error(exc)
+                queue.put_nowait({"error": {"status": err.status_code, "detail": err.detail}})
+            except Exception as exc:  # noqa: BLE001
+                queue.put_nowait({"error": {"status": 503, "detail": f"The agent couldn't run: {exc.__class__.__name__}"}})
+
+        async def lines():
+            task = asyncio.create_task(work())
+            try:
+                while True:
+                    item = await queue.get()
+                    yield json.dumps(item, default=str) + "\n"
+                    if "result" in item or "error" in item:
+                        break
+            finally:
+                task.cancel()
+
+        return StreamingResponse(lines(), media_type="application/x-ndjson")
 
     @app.post("/api/resolve")
     async def resolve(body: InterestBody, request: Request) -> dict[str, Any]:

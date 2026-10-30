@@ -17,6 +17,8 @@ import {
   guestName,
   LABEL,
   mapsUrl,
+  agentStream,
+  optionKind,
   shared,
   type DemoPair,
   type Issue,
@@ -30,6 +32,13 @@ import {
 type AffinityRank = { rank_from_bottom: number; of: number };
 
 type Tab = "default" | "g1" | "g2" | "both" | "own" | "arrivals";
+
+export type StartState = {
+  tab?: Tab;
+  ex: number;
+  lines: number;
+  own: { city?: string; category: Category; favs: string[]; ids: string[] };
+};
 
 function meta(p: Place): string {
   if (p.in_house) return "Hotel's own · kept as is";
@@ -62,15 +71,19 @@ function Affinity({ value }: { value?: number }) {
   );
 }
 
+function ignoredLines(text: string): number {
+  return Math.max(0, text.split("\n").filter((l) => l.trim()).length - 10);
+}
+
 function pairLabel(p: DemoPair): string {
   return `${p.city}: ${guestName(p.guest1)} vs. ${guestName(p.guest2)}`;
 }
 
-export default function ListEditor() {
+export default function ListEditor({ start }: { start: StartState }) {
   const [pairs, setPairs] = useState<DemoPair[]>([]);
-  const [pairIdx, setPairIdx] = useState(0);
-  const [budget, setBudget] = useState(5);
-  const [tab, setTab] = useState<Tab>("default");
+  const [pairIdx, setPairIdx] = useState(start.ex);
+  const [budget, setBudget] = useState(start.lines);
+  const [tab, setTab] = useState<Tab>(start.tab ?? "default");
   const [results, setResults] = useState<Partial<Record<Tab, EditResult>>>({});
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -80,9 +93,24 @@ export default function ListEditor() {
   const [open, setOpen] = useState<string | null>(null);
   const [animate, setAnimate] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
-  const touched = useRef(false);
+  const touched = useRef(start.tab !== undefined);  // a link to a tab means: no automatic switch
 
   const pair = pairs[pairIdx];
+  const own = results.own;
+
+  // Keep the view in the URL, so a reload or a shared link lands on the same list.
+  useEffect(() => {
+    const q = new URLSearchParams({ tab, ex: String(pairIdx), lines: String(budget) });
+    if (tab === "own" && own) {
+      q.set("city", own.city);
+      q.set("kind", own.category ?? "dining");
+      own.guest.forEach((g) => {
+        q.append("fav", g.name);
+        q.append("id", g.id);
+      });
+    }
+    window.history.replaceState(null, "", `?${q.toString()}`);
+  }, [tab, pairIdx, budget, own]);
 
   useEffect(() => {
     api.demo().then((d) => setPairs(d.pairs)).catch((e) => setError(e.message));
@@ -188,8 +216,8 @@ export default function ListEditor() {
           </select>
         </label>
         <span className="ctl">
-          Swap budget
-          <span className="seg" role="group" aria-label="Swap budget">
+          Lines that may change
+          <span className="seg" role="group" aria-label="Lines that may change">
             {BUDGETS.map((b) => (
               <button
                 key={b}
@@ -251,6 +279,7 @@ export default function ListEditor() {
       {(
         <div hidden={tab !== "own"}>
         <OwnGuest
+          start={start.own}
           budget={budget}
           hotelOpen={hotelOpen}
           hotelText={hotelText}
@@ -286,7 +315,7 @@ export default function ListEditor() {
             </div>
             <div>
               {current?.cached && <span className="badge" title="Answered from saved Qloo results">cached result</span>}{" "}
-              {current && tab === "own" && <span className="badge">swap budget {current.budget}</span>}{" "}
+              {current && tab === "own" && <span className="badge">up to {current.budget} lines change</span>}{" "}
               {current && tab !== "default" && (
                 <span className="count">
                   <span className="red">{current.changed - [...rej].length}</span> of {current.length} changed
@@ -297,6 +326,9 @@ export default function ListEditor() {
           <p className="label">
             {current?.source === "hotel" ? HOTEL_LABEL : DEFAULT_LABEL}
             {current?.skipped?.length ? `. Skipped as repeats: ${current.skipped.join(", ")}` : ""}
+            {tab === "own" && current?.source === "hotel" && ignoredLines(hotelText) > 0
+              ? `. ${ignoredLines(hotelText)} ${ignoredLines(hotelText) === 1 ? "line" : "lines"} ignored: only the first 10 are used`
+              : ""}
             {tab === "default" ? "" : ". Red: struck for this guest. Green: added for this guest."}
           </p>
 
@@ -394,6 +426,7 @@ function SideBySide({
   const inA = new Set(fa.map((p) => p.id));
   const col = (r: EditResult, list: Place[], other: Set<string>, title: string) => {
     const added = new Set(r.lines.filter((l) => l.status === "insert").map((l) => l.place.id));
+    const notes = new Map(r.lines.filter((l) => l.status === "insert").map((l) => [l.place.id, l.note]));
     return (
       <div className="col">
         <h3>{title}</h3>
@@ -406,6 +439,7 @@ function SideBySide({
                 <div className="name">{p.name}</div>
                 <MapLink p={p} city={r.city} />
                 <div className="meta">{other.has(p.id) ? "on both lists" : meta(p)}</div>
+                {added.has(p.id) && notes.get(p.id) && <div className="cnote">{notes.get(p.id)}</div>}
               </div>
             </li>
           ))}
@@ -465,7 +499,7 @@ function EditedList({
         const isRejected = l.status !== "keep" && rejected.has(strikeId);
         const cls = ["row", l.status, isRejected ? (l.status === "strike" ? "restored" : "rejected") : ""].join(" ");
         const key = `${l.status}-${l.place.id}`;
-        const delay = l.status === "keep" ? undefined : { animationDelay: `${150 + order[i] * 160}ms` };
+        const delay = l.status === "keep" ? undefined : { animationDelay: `${40 + order[i] * 45}ms` };
         return (
           <li className={cls} key={key} style={delay}>
             <span className="num">{l.status === "insert" ? "+" : numbers[i]}</span>
@@ -629,6 +663,7 @@ function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
 }
 
 function OwnGuest({
+  start,
   budget,
   hotelOpen,
   hotelText,
@@ -636,6 +671,7 @@ function OwnGuest({
   onStart,
   onResult,
 }: {
+  start: StartState["own"];
   budget: number;
   hotelOpen: boolean;
   hotelText: string;
@@ -643,15 +679,18 @@ function OwnGuest({
   onStart: () => void;
   onResult: (r: EditResult) => void;
 }) {
-  const [city, setCity] = useState("London");
-  const [category, setCategory] = useState<Category>("dining");
-  const [names, setNames] = useState(["", "", ""]);
-  const [ids, setIds] = useState<(string | undefined)[]>([undefined, undefined, undefined]);
+  const [city, setCity] = useState(start.city && CITIES.includes(start.city) ? start.city : "London");
+  const [category, setCategory] = useState<Category>(start.category);
+  const [names, setNames] = useState([0, 1, 2].map((i) => start.favs[i] ?? ""));
+  const [ids, setIds] = useState<(string | undefined)[]>([0, 1, 2].map((i) => start.ids[i] || undefined));
   const [issues, setIssues] = useState<Issue[]>([]);
   const [busy, setBusy] = useState<"form" | "agent" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[]; other?: string[] } | null>(null);
+  const [steps, setSteps] = useState<TraceStep[]>([]);
+  const [slow, setSlow] = useState(false);
+  const inFlight = useRef(false);  // a second click before React re-renders must not send twice
 
   const hotelLines = useCallback(
     () =>
@@ -672,6 +711,8 @@ function OwnGuest({
         setErr("Type at least one favourite: a band, show, film, brand or game.");
         return;
       }
+      if (inFlight.current) return;
+      inFlight.current = true;
       setBusy("form");
       setErr(null);
       setIssues([]);
@@ -684,21 +725,42 @@ function OwnGuest({
       } catch (e) {
         setErr((e as Error).message);
       } finally {
+        inFlight.current = false;
         setBusy(null);
       }
     },
     [names, ids, city, budget, hotelLines, category, onStart, onResult],
   );
 
+  const linked = useRef(start.favs.length > 0);
+  useEffect(() => {
+    if (!linked.current) return;
+    linked.current = false;
+    const t = setTimeout(() => submit(), 0);  // a link with favourites opens on their edited list
+    return () => clearTimeout(t);
+  }, [submit]);
+
   const runAgent = async () => {
-    if (text.trim().length < 3) return;
+    if (text.trim().length < 3) {
+      setErr("Describe the guest first, e.g. “loves Amy Winehouse and Dr. Martens”.");
+      return;
+    }
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy("agent");
     onStart();
     setErr(null);
     setIssues([]);
     setAgent(null);
+    setSteps([]);
+    setSlow(false);
+    const timer = setTimeout(() => setSlow(true), 30000);
     try {
-      const r = await api.agent(text, city, budget, hotelLines());
+      const lines = hotelLines();
+      const r = await agentStream(
+        { text, city, budget, hotel_list: lines.length ? lines : undefined },
+        (s) => setSteps((x) => [...x, s]),
+      );
       setAgent({ said: r.agent_said, trace: r.trace, other: (r as EditResult).not_considered });
       if (r.city && CITIES.includes(r.city)) setCity(r.city);
       if (r.status === "ok") {
@@ -727,8 +789,25 @@ function OwnGuest({
     } catch (e) {
       setErr((e as Error).message);
     } finally {
+      clearTimeout(timer);
+      inFlight.current = false;
+      setSteps([]);
+      setSlow(false);
       setBusy(null);
     }
+  };
+
+  // The guest meant something Qloo's search didn't offer: clear that field and say how to retry.
+  const noneOfThese = (field: string, query: string) => {
+    const i = Number(field.split(":")[1] ?? 0);
+    const n = [...names];
+    const c = [...ids];
+    n[i] = "";
+    c[i] = undefined;
+    setNames(n);
+    setIds(c);
+    setIssues((all) => all.filter((x) => x.field !== field));
+    setErr(`Qloo's search has no other match for ‘${query}’. Try the full name as the brand or artist writes it (e.g. “Dr. Martens”).`);
   };
 
   const pick = (field: string, id: string, name: string) => {
@@ -836,10 +915,13 @@ function OwnGuest({
             <div className="opts">
               {iss.options.map((o) => (
                 <button key={o.id} type="button" title={o.description} onClick={() => pick(iss.field, o.id, o.name)}>
-                  {o.name} <span className="label">({o.kind.replace("_", " ")})</span>
+                  {o.name} <span className="label">({optionKind(o)})</span>
                   {o.description && <span className="opt-desc">{o.description.slice(0, 60)}{o.description.length > 60 ? "…" : ""}</span>}
                 </button>
               ))}
+              <button type="button" className="none" onClick={() => noneOfThese(iss.field, iss.query)}>
+                None of these
+              </button>
             </div>
           </div>
         ) : (
@@ -847,6 +929,26 @@ function OwnGuest({
             ‘{iss.query}’: {iss.message}
           </div>
         ),
+      )}
+      {busy === "agent" && (
+        <div className="live" aria-live="polite">
+          <p className="label">The agent is working. Each tool call appears as it happens:</p>
+          <ol>
+            {steps.map((s, i) => (
+              <li key={i}>
+                <code>{s.tool}</code> {typeof s.input === "string" ? s.input : JSON.stringify(s.input)} →{" "}
+                {typeof s.output === "string" ? s.output : JSON.stringify(s.output)}
+              </li>
+            ))}
+            {steps.length === 0 && <li className="label">Reading the description…</li>}
+          </ol>
+          {slow && (
+            <p className="err">
+              This is taking longer than usual (30 s). The agent stops after about 50 s; the fields above give the same list
+              without the model.
+            </p>
+          )}
+        </div>
       )}
       {err && <p className="err">{err}</p>}
       {agent?.said && <p className="agent-said">Agent: {agent.said}</p>}

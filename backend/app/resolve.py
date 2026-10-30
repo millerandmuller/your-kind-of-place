@@ -68,11 +68,13 @@ def _entity(candidate: dict[str, Any]) -> Entity:
     return Entity(candidate["entity_id"], candidate["name"], _describe(candidate), _kind(candidate))
 
 
-def _option(candidate: dict[str, Any]) -> dict[str, str]:
+def _option(candidate: dict[str, Any]) -> dict[str, Any]:
+    year = (candidate.get("properties") or {}).get("release_year")
     return {
         "id": candidate["entity_id"],
         "name": candidate["name"],
         "kind": _kind(candidate),
+        "year": year if isinstance(year, int) else None,  # tells "Dune" 2021 from "Dune" 1984
         "description": _describe(candidate),
     }
 

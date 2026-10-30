@@ -33,6 +33,9 @@ NOT_A_RECOMMENDATION = {
     "restaurant:ice_cream_shop",
     "restaurant:donut_shop",
     "restaurant:bubble_tea_store",
+    "restaurant:kebab_shop",
+    "restaurant:doner_kebab",
+    "restaurant:snack_bar",
 }
 
 # Airport lounges and terminal outlets: "Heathrow Airport", "Terminal 3 Nelson Rd".
@@ -237,9 +240,12 @@ def insert_note(place: dict[str, Any], names: dict[str, str]) -> str:
 def public_place(place: dict[str, Any]) -> dict[str, Any]:
     props = place.get("properties") or {}
     loc = place.get("location") or {}
+    name = str(place.get("name") or "")
+    if name[:1].islower():  # Qloo keeps some brands' lower-case styling ("sketch"); a list starts upper-case
+        name = name[:1].upper() + name[1:]
     return {
         "id": place.get("entity_id"),
-        "name": place.get("name"),
+        "name": name,
         "kind": kind_label(place),
         "neighborhood": props.get("neighborhood"),
         "address": props.get("address"),

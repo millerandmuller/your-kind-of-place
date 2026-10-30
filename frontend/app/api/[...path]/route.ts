@@ -21,6 +21,10 @@ async function forward(req: Request, path: string[]): Promise<Response> {
       body: req.method === "POST" ? await req.text() : undefined,
       cache: "no-store",
     });
+    const type = res.headers.get("content-type") ?? "application/json";
+    if (type.startsWith("application/x-ndjson") && res.body) {
+      return new Response(res.body, { status: res.status, headers: { "content-type": type, "cache-control": "no-store" } });
+    }
     return new Response(await res.text(), {
       status: res.status,
       headers: { "content-type": res.headers.get("content-type") ?? "application/json" },

@@ -60,7 +60,7 @@ export default function How() {
           <strong>Struck:</strong> list entries that are not in the guest&apos;s top 50, the ones this guest&apos;s taste
           likes least first (Qloo&apos;s affinity for exactly the places on the list, via{" "}
           <code>filter.results.entities</code>; places Qloo gives no score come after all scored ones, lowest on the list
-          first), at most as many as the swap budget
+          first), at most as many as “Lines that may change”
           (3, 5 or 10).
         </li>
         <li>

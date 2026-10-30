@@ -52,7 +52,7 @@ select, .seg button {
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
 
 /* guest tabs */
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 14px; scrollbar-width: thin; }
 .tab {
   display: grid; text-align: left; gap: 1px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--sheet); min-width: 150px;
@@ -114,7 +114,7 @@ ol.list { list-style: none; margin: 8px 0 0; padding: 0; }
 
 /* reveal: edits arrive one row after another */
 @keyframes mark { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
-.animate .row.strike, .animate .row.insert { animation: mark 380ms ease-out both; }
+.animate .row.strike, .animate .row.insert { animation: mark 260ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .animate .row.strike, .animate .row.insert { animation: none; } }
 
 .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
@@ -207,3 +207,8 @@ details.trace code { font-size: 0.78rem; }
 .sendout .fields { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
 .sendout .fields label { display: grid; gap: 4px; margin: 0; }
 .other { margin: 6px 0; font-size: 0.85rem; border-left: 3px solid var(--ink); padding-left: 10px; }
+.cnote { flex-basis: 100%; font-size: 0.75rem; color: var(--green); font-style: italic; }
+.opts .none { border-style: dashed; }
+.live { margin: 10px 0; font-size: 0.85rem; }
+.live ol { margin: 4px 0 0; padding-left: 20px; }
+.tab { flex: 0 0 auto; }

@@ -14,7 +14,7 @@ from .qloo import QlooClient, start_trace
 from .qloo import PLACE as PLACE_TYPE
 from .resolve import Clarify, Entity, NotFound, norm, resolve_interest
 
-CITIES = ("London", "San Francisco", "New York", "Austin", "Berlin")
+CITIES = ("London", "San Francisco", "New York", "Austin")
 # What Qloo is asked for: plain "New York" also matches places across New York State.
 CITY_QUERY = {"New York": "New York City"}
 # City centres (lat, lon); anything farther than MAX_KM is not a place a concierge sends a guest to.
@@ -23,7 +23,6 @@ CENTRES = {
     "San Francisco": (37.7749, -122.4194),
     "New York": (40.7128, -74.0060),
     "Austin": (30.2672, -97.7431),
-    "Berlin": (52.5200, 13.4050),
 }
 MAX_KM = 25
 DEMO_FILE = Path(__file__).resolve().parents[2] / "demo-data" / "demo_guests.json"

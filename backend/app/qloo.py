@@ -52,7 +52,7 @@ def _trim_entity(e: dict[str, Any]) -> dict[str, Any]:
     props = e.get("properties") or {}
     keep = {
         k: props.get(k)
-        for k in ("neighborhood", "address", "short_description", "price_level", "description")
+        for k in ("neighborhood", "address", "short_description", "price_level", "description", "release_year")
         if props.get(k) is not None
     }
     if isinstance(keep.get("description"), str):
