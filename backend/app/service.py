@@ -40,6 +40,10 @@ class InterestIn:
     id: str | None = None
 
 
+async def _none(value: Any) -> Any:
+    return value
+
+
 class UnknownCity(ValueError):
     pass
 
@@ -141,11 +145,15 @@ class Redliner:
         return out, skipped
 
     async def taste_places(
-        self, city: str, ids: list[str], category: str = "dining"
+        self, city: str, ids: list[str], category: str = "dining", price_min: int | None = None
     ) -> tuple[list[dict[str, Any]], set[str]]:
-        """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50)."""
+        """The guest's top 50 Qloo matches: (dining places in rank order, ids of all 50).
+
+        With `price_min`, Qloo is asked only for places at or above that price level."""
         city = check_city(city)
-        raw = await self.qloo.places(CITY_QUERY.get(city, city), ids, take=50, explain=True, category=category)
+        raw = await self.qloo.places(
+            CITY_QUERY.get(city, city), ids, take=50, explain=True, category=category, price_min=price_min
+        )
         return in_town(city, rl.dining(raw, category)), {p["entity_id"] for p in raw if p.get("entity_id")}
 
     async def resolve(self, interests: list[InterestIn]) -> tuple[list[Entity], list[dict[str, Any]]]:
@@ -186,8 +194,19 @@ class Redliner:
                 self.default_list(city, category), self.taste_places(city, [g.id for g in guests], category)
             )
         listed = [p["entity_id"] for p in default if not p["entity_id"].startswith(rl.UNMATCHED)]
-        affinity = await self.qloo.affinity(listed, [g.id for g in guests]) if listed else {}
-        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids, affinity=affinity)
+        # Restaurants keep the list's level: inserts come from the guest's matches at or above it.
+        floor = rl.level_floor(default) if category == "dining" else None
+        at_level = (
+            self.taste_places(city, [g.id for g in guests], category, price_min=floor)
+            if floor and floor > 1 else None
+        )
+        affinity, leveled = await asyncio.gather(
+            self.qloo.affinity(listed, [g.id for g in guests]) if listed else _none({}),
+            at_level if at_level else _none(None),
+        )
+        if leveled:
+            taste = leveled[0]
+        result = rl.redline(default, taste, names, budget=budget, match_ids=match_ids, affinity=affinity, floor=floor)
         return {
             "match_count": len(match_ids),
             "city": city,

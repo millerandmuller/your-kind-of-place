@@ -6,6 +6,8 @@ Rules (also shown on the "How this works" page):
   most `budget` of them.
 - Inserted: the guest's best taste matches that are not on the list yet, one per struck entry, in
   Qloo's rank order. Each insert takes the place of a struck entry (top struck slot gets the best match).
+  An insert is never below the list's own price level (the median Qloo price level of its entries),
+  and on a list at level 3 or above no pub replaces a restaurant.
 - Kept: everything else, unmarked.
 """
 from __future__ import annotations
@@ -48,6 +50,8 @@ CHAINS = (
     "tortilla", "chiquito", "frankie & benny", "carluccio", "giraffe", "las iguanas", "bill's", "the real greek",
     "joe & the juice", "blue bottle coffee", "peet's", "tim hortons", "panera", "p.f. chang", "cheesecake",
     "vapiano", "block house", "l'osteria", "hans im glück", "dean & david", "maredo",
+    "slug & lettuce", "the alchemist", "all bar one", "be at one", "revolution ", "walkabout", "o'neill's",
+    "the botanist", "browns ", "café rouge", "cafe rouge", "hotel chocolat", "bodean's", "tgi fridays",
 )
 UNMATCHED = "line:"  # entity id prefix for hotel-list lines Qloo doesn't know
 
@@ -68,10 +72,49 @@ def is_dining(place: dict[str, Any], allow_chains: bool = False) -> bool:
         return False
     if not allow_chains and is_chain(place):
         return False
+    if not allow_chains and is_themed(place):
+        return False
     props = place.get("properties") or {}
     if _AIRPORT.search(f"{props.get('address') or ''} {place.get('name') or ''}"):
         return False  # lounges and terminal outlets aren't somewhere to send a guest
     return genre == "restaurant" or genre.startswith("restaurant:") or genre in DINING_EXTRA
+
+
+def tag_names(place: dict[str, Any], kind: str) -> list[str]:
+    """Qloo's tags of one kind for this place, e.g. kind='ambience' → ['Intimate', 'Soulful']."""
+    want = f"urn:tag:{kind}:qloo"
+    return [str(t.get("name")) for t in place.get("tags") or [] if isinstance(t, dict) and t.get("type") == want and t.get("name")]
+
+
+def is_themed(place: dict[str, Any]) -> bool:
+    """Theme venues (Qloo decor 'Themed'): the tourist pubs and themed restaurants a concierge skips."""
+    return "Themed" in tag_names(place, "decor")
+
+
+def price_level(place: dict[str, Any]) -> int | None:
+    v = (place.get("properties") or {}).get("price_level")
+    return int(v) if isinstance(v, (int, float)) and 1 <= v <= 4 else None
+
+
+# On a list at price level 3 or above, a pub doesn't replace a restaurant.
+CASUAL = {"pub", "restaurant:irish_pub", "restaurant:sports_bar", "restaurant:pub", "irish_pub", "sports_bar"}
+
+
+def at_level(place: dict[str, Any], floor: int | None) -> bool:
+    if floor is None:
+        return True
+    if (price_level(place) or 0) < floor:
+        return False
+    return not (floor >= 3 and genre_of(place) in CASUAL)
+
+
+def level_floor(places: list[dict[str, Any]]) -> int | None:
+    """The list's own level: the median Qloo price level of its entries (lower median), when at
+    least three entries have one. Inserts never go below it."""
+    levels = sorted(x for p in places if (x := price_level(p)) is not None)
+    if len(levels) < 3:
+        return None
+    return levels[(len(levels) - 1) // 2]
 
 
 def is_chain(place: dict[str, Any]) -> bool:
@@ -158,17 +201,37 @@ def drivers(place: dict[str, Any], names: dict[str, str]) -> list[dict[str, Any]
     return sorted(rows, key=lambda r: r["score"], reverse=True)
 
 
+# Ambience words that fit nearly every place say nothing about this one.
+_PLAIN_AMBIENCE = {"casual", "welcoming", "comfortable", "social", "charming", "relaxing", "classic", "fun",
+                   "friendly", "inviting", "cozy", "warm", "pleasant", "unique", "popular", "bright", "stylish"}
+
+
+def place_tags(place: dict[str, Any]) -> list[str]:
+    """Up to three of the place's own Qloo tags: what it is about, how it feels, late nights."""
+    out: list[str] = []
+    interests = tag_names(place, "interests")
+    if interests:
+        out.append(interests[0])
+    feel = next((a for a in tag_names(place, "ambience") if a.lower() not in _PLAIN_AMBIENCE), None)
+    if feel:
+        out.append(feel)
+    if "Late night" in tag_names(place, "time_of_day_fit"):
+        out.append("Late night")
+    seen: set[str] = set()
+    return [t.lower() for t in out if not (t.lower() in seen or seen.add(t.lower()))]
+
+
 def insert_note(place: dict[str, Any], names: dict[str, str]) -> str:
-    """'Because you love Amy Winehouse · Spitalfields · Pub' — every part comes from Qloo."""
+    """'Because the guest loves Amy Winehouse · live jazz · soulful · late night · Soho' — every part from Qloo."""
     ds = drivers(place, names)
     if not ds:
         lead = "A top taste match for this guest"
     elif len(ds) > 1 and ds[0]["score"] - ds[1]["score"] < 0.1:
-        lead = f"Because you love {ds[0]['name']} and {ds[1]['name']}"
+        lead = f"Because the guest loves {ds[0]['name']} and {ds[1]['name']}"
     else:
-        lead = f"Because you love {ds[0]['name']}"
+        lead = f"Because the guest loves {ds[0]['name']}"
     hood = (place.get("properties") or {}).get("neighborhood")
-    return " · ".join(x for x in (lead, hood, kind_label(place)) if x)
+    return " · ".join(x for x in (lead, *place_tags(place), hood) if x)
 
 
 def public_place(place: dict[str, Any]) -> dict[str, Any]:
@@ -182,6 +245,7 @@ def public_place(place: dict[str, Any]) -> dict[str, Any]:
         "address": props.get("address"),
         "description": props.get("short_description"),
         "price_level": props.get("price_level"),
+        "tags": place_tags(place),
         "lat": loc.get("lat"),
         "lon": loc.get("lon"),
         "typed": place.get("typed"),  # what the hotel's list said, when it was matched to a Qloo place
@@ -197,9 +261,12 @@ class Line:
     note: str = ""
     why: list[dict[str, Any]] | None = None
     replaces: str | None = None
+    affinity: float | None = None  # Qloo's taste affinity of this guest for the place (0-1)
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {"status": self.status, "place": public_place(self.place), "note": self.note}
+        if self.affinity is not None:
+            out["affinity"] = round(self.affinity, 3)
         if self.why is not None:
             out["why"] = self.why
         if self.replaces:
@@ -236,12 +303,14 @@ def redline(
     budget: int = 5,
     match_ids: set[str] | None = None,
     affinity: dict[str, float] | None = None,
+    floor: int | None = None,
 ) -> dict[str, Any]:
     """Edit `default` for a guest. Pure function.
 
     `taste` is the guest's ranked dining matches (inserts come from here); `match_ids` is the full
     top-50 Qloo answer before the dining filter (a default entry in there is never struck);
-    `affinity` is Qloo's taste affinity of this guest for each place on the list.
+    `affinity` is Qloo's taste affinity of this guest for each place on the list; `floor` is the
+    lowest Qloo price level an insert may have (see level_floor), None for no floor.
     """
     affinity = affinity or {}
     taste_set = match_ids if match_ids is not None else {p["entity_id"] for p in taste}
@@ -257,7 +326,7 @@ def redline(
         if default[i]["entity_id"] in affinity
         else (1, 0.0, -i)  # unscored only after every scored entry
     )
-    insert_pool = [p for p in taste if p["entity_id"] not in default_ids]
+    insert_pool = [p for p in taste if p["entity_id"] not in default_ids and at_level(p, floor)]
     n = max(0, min(budget, len(strike_pool), len(insert_pool)))
     struck = sorted(strike_pool[:n])  # back into list order: the top struck slot gets the best match
     inserts = dict(zip(struck, insert_pool[:n]))
@@ -267,10 +336,12 @@ def redline(
     for i, p in enumerate(default):
         if i in inserts:
             rank = _affinity_rank(p, default, affinity)
-            lines.append(Line("strike", p, strike_note(rank), why=rank))
+            lines.append(Line("strike", p, strike_note(rank), why=rank, affinity=affinity.get(p["entity_id"])))
             new = inserts[i]
+            a = (new.get("query") or {}).get("affinity")
             lines.append(
-                Line("insert", new, insert_note(new, names), drivers(new, names), replaces=p["entity_id"])
+                Line("insert", new, insert_note(new, names), drivers(new, names), replaces=p["entity_id"],
+                     affinity=float(a) if isinstance(a, (int, float)) else None)
             )
             final.append(new)
         else:
@@ -281,6 +352,7 @@ def redline(
         "final": [public_place(p) for p in final],
         "changed": n,
         "length": len(default),
+        "level": floor,
         "possible": min(len(strike_pool), len(insert_pool)),
     }
 

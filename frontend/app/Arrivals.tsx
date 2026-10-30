@@ -39,12 +39,13 @@ function parse(text: string): { label: string; text: string }[] {
 function reportText(rep: MorningReport): string {
   const parts = rep.guests.map((g) => {
     const r = g.result;
-    if (r.status !== "ok") return `${g.label}\n   (no list: ${r.status === "skipped" ? "no favourites confirmed" : "needs a pick"})`;
+    const other = g.not_considered?.length ? `\n   Not considered: ${g.not_considered.join(", ")}` : "";
+    if (r.status !== "ok") return `${g.label}${other}\n   (no list: ${r.status === "skipped" ? "no favourites confirmed" : "needs a pick"})`;
     const ok = r as EditResult;
     const rows = ok.lines.map((l) =>
       l.status === "strike" ? `   - ${l.place.name}` : l.status === "insert" ? `   + ${l.place.name}  (${l.note})` : `     ${l.place.name}`,
     );
-    return `${g.label} · loves ${guestName(ok.guest)} · ${ok.changed} of ${ok.length} changed\n${rows.join("\n")}`;
+    return `${g.label} · loves ${guestName(ok.guest)} · ${ok.changed} of ${ok.length} changed${other}\n${rows.join("\n")}`;
   });
   return `Morning report: tomorrow's arrivals, ${rep.city}\n\n${parts.join("\n\n")}\n\n${LABEL}`;
 }
@@ -131,6 +132,7 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
     try {
       const guests = read.guests.map((g, gi) => ({
         label: g.label,
+        not_considered: g.not_considered ?? [],
         interests: g.favourites
           .map((_, fi) => picked[key(gi, fi)])
           .filter((x): x is Interest => !!x)
@@ -206,6 +208,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
             {read.guests.map((g, gi) => (
               <div className="guest-card" key={gi}>
                 <strong>{g.label}</strong> <span className="label">{g.text}</span>
+                {g.not_considered && g.not_considered.length > 0 && (
+                  <p className="other">Not considered by the edit: {g.not_considered.join(", ")}</p>
+                )}
                 <div className="chips">
                   {g.favourites.length === 0 && !manual && <span className="label">No band, show, film, brand or game in this note.</span>}
                   {g.favourites.map((f, fi) =>
@@ -302,6 +307,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
               return (
                 <div className="report-guest" key={i}>
                   <h3>{g.label}</h3>
+                  {g.not_considered && g.not_considered.length > 0 && (
+                    <p className="other">Not considered: {g.not_considered.join(", ")}</p>
+                  )}
                   <p className="label">{r.status === "skipped" ? "No favourites confirmed, so the list stays as it is." : "A favourite needs a pick first."}</p>
                 </div>
               );
@@ -315,6 +323,9 @@ export default function Arrivals({ budget, hotelLines }: { budget: number; hotel
                   </span>
                   {ok.cached && <span className="badge"> cached result</span>}
                 </h3>
+                {g.not_considered && g.not_considered.length > 0 && (
+                  <p className="other">Not considered: {g.not_considered.join(", ")}</p>
+                )}
                 <ol className="list compact">
                   {ok.lines.map((l) => (
                     <li key={`${l.status}-${l.place.id}`} className={`row ${l.status}`}>

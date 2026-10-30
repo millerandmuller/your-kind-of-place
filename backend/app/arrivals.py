@@ -28,9 +28,10 @@ INSTRUCTION = """\
 You read a hotel's arrival notes, one numbered note per guest, written by the front desk or taken
 from the CRM. For EVERY note call record_guest exactly once with the note's number and at most 3
 things the guest loves that Qloo could know: a band or musician, a TV show, a film, a brand or a
-video game. Copy each favourite exactly as it is written in the note. Skip food preferences,
-allergies, room wishes and anything that is not a named band, show, film, brand or game. If a note
-names none, call record_guest with an empty list. Do not add anything that is not in the note.
+video game. Copy each favourite exactly as it is written in the note. If a note names none, use an
+empty list. Put everything else the concierge must not lose (allergies, diet, occasions such as a
+birthday or anniversary, room wishes, mobility) into not_considered, each item copied word for word
+from the note, e.g. "nut allergy". Do not add anything that is not in the note.
 When every note is recorded, answer "done".
 """
 
@@ -63,6 +64,12 @@ def _found(f: str, n: str) -> int:
     return hit
 
 
+def written_in(phrase: str, note: str) -> bool:
+    """The phrase appears in the note as written (case, accents and punctuation aside)."""
+    f = _fold(phrase)
+    return bool(f) and _found(f, _fold(note)) >= 0
+
+
 def in_note(fav: str, note: str) -> bool:
     """The favourite must be written in the note, and not negated in its own clause ("hates Coldplay")."""
     f = _fold(fav)
@@ -79,20 +86,27 @@ def in_note(fav: str, note: str) -> bool:
     return False
 
 
-async def extract(settings: Settings, notes: list[str]) -> tuple[list[list[str]], list[dict[str, Any]]]:
-    """Favourites per note, as recorded by the agent and checked against the note text."""
+async def extract(
+    settings: Settings, notes: list[str]
+) -> tuple[list[list[str]], list[dict[str, Any]], list[list[str]]]:
+    """Favourites per note and what the edit doesn't use, as recorded by the agent and checked
+    against the note text. Returns (favourites, trace, not considered)."""
     recorded: dict[int, list[str]] = {}
+    other: dict[int, list[str]] = {}
     log: list[dict[str, Any]] = []
 
-    def record_guest(note_number: int, favourites: list[str]) -> dict[str, Any]:
-        """Record up to 3 favourites (band, show, film, brand or game) for the numbered note."""
+    def record_guest(note_number: int, favourites: list[str], not_considered: list[str] | None = None) -> dict[str, Any]:
+        """Record up to 3 favourites (band, show, film, brand or game) for the numbered note, and the
+        note's other wishes (allergies, diet, occasions, room wishes) word for word as not_considered."""
         i = note_number - 1
         if not 0 <= i < len(notes):
             return {"status": "error", "message": f"note_number must be 1..{len(notes)}"}
         kept = [f.strip() for f in favourites if in_note(f, notes[i])][:MAX_INTERESTS]
         dropped = [f for f in favourites if f.strip() not in kept]
         recorded[i] = kept
+        other[i] = [x.strip() for x in (not_considered or []) if written_in(x, notes[i])][:6]
         log.append({"tool": "record_guest", "input": f"note {note_number}", "output": kept,
+                    **({"not_considered": other[i]} if other[i] else {}),
                     **({"dropped_not_in_note": dropped} if dropped else {})})
         return {"status": "ok", "kept": kept}
 
@@ -104,12 +118,12 @@ async def extract(settings: Settings, notes: list[str]) -> tuple[list[list[str]]
         user_id="web", session_id=session.id, new_message=types.Content(role="user", parts=[types.Part(text=prompt)])
     ):
         pass
-    return [recorded.get(i, []) for i in range(len(notes))], log
+    return [recorded.get(i, []) for i in range(len(notes))], log, [other.get(i, []) for i in range(len(notes))]
 
 
 async def read_notes(r: Redliner, settings: Settings, notes: list[dict[str, str]]) -> dict[str, Any]:
     texts = [n["text"] for n in notes[:MAX_GUESTS]]
-    favs, log = await extract(settings, texts)
+    favs, log, other = await extract(settings, texts)
 
     async def resolve_all(names: list[str]) -> list[dict[str, Any]]:
         found = await asyncio.gather(*[resolve_interest(r.qloo, i, name) for i, name in enumerate(names)])
@@ -127,7 +141,8 @@ async def read_notes(r: Redliner, settings: Settings, notes: list[dict[str, str]
     return {
         "status": "ok",
         "guests": [
-            {"label": n.get("label") or f"Guest {i + 1}", "text": n["text"], "favourites": res}
+            {"label": n.get("label") or f"Guest {i + 1}", "text": n["text"], "favourites": res,
+             "not_considered": other[i]}
             for i, (n, res) in enumerate(zip(notes[:MAX_GUESTS], resolved))
         ],
         "trace": log,
@@ -144,9 +159,10 @@ async def morning_report(
 ) -> dict[str, Any]:
     async def one(g: dict[str, Any]) -> dict[str, Any]:
         interests = [InterestIn(x["name"], x.get("id")) for x in g["interests"][:MAX_INTERESTS]]
+        other = {"not_considered": g.get("not_considered") or []}
         if not interests:
-            return {"label": g["label"], "result": {"status": "skipped", "message": "No favourites confirmed."}}
-        return {"label": g["label"], "result": await r.run(city, interests, budget, hotel_lines, category)}
+            return {"label": g["label"], **other, "result": {"status": "skipped", "message": "No favourites confirmed."}}
+        return {"label": g["label"], **other, "result": await r.run(city, interests, budget, hotel_lines, category)}
 
     budget = budget if budget in (3, 5, 10) else 5
     rows = await asyncio.gather(*[one(g) for g in guests[:MAX_GUESTS]])

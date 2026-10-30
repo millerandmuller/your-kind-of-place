@@ -61,9 +61,9 @@ def test_same_input_same_redline():
 
 def test_insert_note_names_the_driving_favourite_from_explainability():
     p = place("x", "pub", "Spitalfields", [{"entity_id": "B", "score": 0.7}, {"entity_id": "A", "score": 0.3}])
-    assert rl.insert_note(p, NAMES) == "Because you love Dr. Martens · Spitalfields · Pub"
+    assert rl.insert_note(p, NAMES) == "Because the guest loves Dr. Martens · Spitalfields"
     close = place("y", "restaurant:cocktail_bar", None, [{"entity_id": "A", "score": 0.52}, {"entity_id": "B", "score": 0.48}])
-    assert rl.insert_note(close, NAMES) == "Because you love Amy Winehouse and Dr. Martens · Cocktail bar"
+    assert rl.insert_note(close, NAMES) == "Because the guest loves Amy Winehouse and Dr. Martens"
     assert rl.insert_note(place("z"), NAMES).startswith("A top taste match")
 
 
@@ -118,7 +118,7 @@ def test_api_redline_end_to_end_with_a_fake_qloo(tmp_path):
         assert all(p["kind"] != "Hotel" for p in body["final"])
         assert body["cached"] is False
         inserts = [l for l in body["lines"] if l["status"] == "insert"]
-        assert inserts[0]["note"] == "Because you love Amy Winehouse · Soho · Pub"
+        assert inserts[0]["note"] == "Because the guest loves Amy Winehouse · Soho"
         assert client.post("/api/edit", json={"city": "Paris", "interests": [{"name": "Amy"}]}).status_code == 422
         assert client.get("/api/demo").json()["pairs"][0]["city"] == "London"
 
@@ -367,3 +367,51 @@ def test_adult_filter_catches_variants_and_spares_ordinary_bars():
     assert rl.is_adult(_p(name="Hustler Club"))
     for desc in ["Rooftop bar, topless sunbathing not allowed", "Vegas-style bar on the Strip", "Jazz lounge with a stripped-back menu"]:
         assert not rl.is_adult(_p(description=desc)), desc
+
+
+def _tagged(pid, price=None, **kinds):
+    p = place(pid)
+    if price:
+        p["properties"]["price_level"] = price
+    p["tags"] = [{"name": n, "type": f"urn:tag:{k}:qloo"} for k, names in kinds.items() for n in names]
+    return p
+
+
+def test_inserts_never_go_below_the_lists_price_level():
+    default = [_tagged(str(i), price=lv) for i, lv in enumerate([4, 3, 3, 2, 4, 3, 1, 3, 4, 2])]
+    assert rl.level_floor(default) == 3
+    taste = [_tagged("pub", price=2), _tagged("fine", price=4), _tagged("nolevel"), _tagged("mid", price=3)]
+    out = rl.redline(default, taste, NAMES, budget=5, match_ids=set(), floor=3)
+    assert [l["place"]["id"] for l in out["lines"] if l["status"] == "insert"] == ["fine", "mid"]
+    assert out["level"] == 3
+
+
+def test_level_floor_needs_three_priced_entries():
+    assert rl.level_floor([_tagged("a", price=4), _tagged("b"), _tagged("c", price=4)]) is None
+
+
+def test_note_carries_the_places_own_qloo_tags():
+    p = _tagged("x", interests=["Live jazz", "Mixology"], ambience=["Classic", "Soulful"],
+                time_of_day_fit=["Evening", "Late night"])
+    p["properties"]["neighborhood"] = "Soho"
+    p["query"] = {"explainability": {"signal.interests.entities": [{"entity_id": "A", "score": 0.8}]}}
+    assert rl.insert_note(p, NAMES) == "Because the guest loves Amy Winehouse · live jazz · soulful · late night · Soho"
+
+
+def test_theme_venues_are_not_recommended_but_may_stay_on_the_hotels_own_list():
+    p = _tagged("t", decor=["Celtic", "Themed"])
+    assert not rl.is_dining(p) and rl.is_dining(p, allow_chains=True)
+
+
+def test_no_pub_replaces_a_restaurant_on_an_upscale_list():
+    default = [_tagged(str(i), price=4) for i in range(5)]
+    pub = _tagged("pub", price=3); pub["properties"]["primary_genre"] = "urn:tag:genre:place:pub"
+    out = rl.redline(default, [pub, _tagged("bar", price=3)], NAMES, budget=3, match_ids=set(), floor=3)
+    assert [l["place"]["id"] for l in out["lines"] if l["status"] == "insert"] == ["bar"]
+
+
+def test_not_considered_items_must_be_written_in_the_note():
+    from app.arrivals import written_in
+    note = "Loves Amy Winehouse. Nut allergy, celebrating their anniversary; wants a quiet room."
+    assert written_in("nut allergy", note) and written_in("Quiet room", note)
+    assert not written_in("vegetarian", note)

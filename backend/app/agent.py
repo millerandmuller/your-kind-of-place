@@ -30,10 +30,14 @@ The guest is described in free text. Work in this order and never skip a step:
 3. taste_places(city, interest_ids)
 4. edit_list(city, interest_ids, budget)
 5. explain_place(place_name) for the first inserted place.
+6. not_considered(items): everything else in the text the concierge must not lose (allergies, diet,
+   occasions such as a birthday, room wishes), each item copied word for word; an empty list if none.
 Then answer with one or two short sentences: how many of the list's entries changed and why the
 first insert is there, using only the words returned by the tools. Never name a place, a reason or
 a number that no tool returned. Never say a list is "better"; say it fits this guest's taste.
 Unless the hotel's own list was given, call the list "the default list", not "the hotel's list".
+You are talking to the concierge, not to the guest: say "the guest" and "the guest's love of …",
+never "you" or "your" for the guest.
 """
 
 
@@ -50,6 +54,8 @@ class Workspace:
         self.result: dict[str, Any] | None = None
         self.taste: dict[str, dict[str, Any]] = {}
         self.log: list[dict[str, Any]] = []
+        self.text = ""
+        self.other: list[str] = []
 
 
 def build_tools(ws: Workspace):
@@ -121,7 +127,15 @@ def build_tools(ws: Workspace):
         ws.log.append({"tool": "explain_place", "input": place_name, "output": note})
         return {"note": note, "label": "Aggregate taste affinity from Qloo, not a review."}
 
-    return [resolve_interest_tool, default_list, taste_places, edit_list, explain_place]
+    async def not_considered(items: list[str]) -> dict[str, Any]:
+        """Record what the edit does not use (allergies, diet, occasions, room wishes), word for word."""
+        from .arrivals import written_in  # same check as the arrival notes
+
+        ws.other = [x.strip() for x in items if written_in(x, ws.text)][:6]
+        ws.log.append({"tool": "not_considered", "input": items, "output": ws.other})
+        return {"recorded": ws.other}
+
+    return [resolve_interest_tool, default_list, taste_places, edit_list, explain_place, not_considered]
 
 
 def adk_model(settings: Settings, model: str | None = None):
@@ -162,6 +176,7 @@ async def _run(
 ) -> dict[str, Any]:
     trace = start_trace()
     ws = Workspace(redliner, check_city(city), budget if budget in rl.BUDGETS else 5, hotel_lines)
+    ws.text = text
     agent = LlmAgent(
         name="concierge",
         model=adk_model(settings, model),
@@ -186,7 +201,7 @@ async def _run(
         if not ws.log:
             raise _ModelFailed(str(exc)) from exc
         raise
-    base = {"agent_said": final.strip(), "trace": ws.log, "city": ws.city}
+    base = {"agent_said": final.strip(), "trace": ws.log, "city": ws.city, "not_considered": ws.other}
     if ws.issues:
         return {"status": "needs_input", "issues": ws.issues,
                 "resolved": [e.public() for e in ws.entities.values()], **base}

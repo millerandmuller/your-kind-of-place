@@ -32,6 +32,17 @@ CATEGORY_TAGS = {
 }
 
 
+# Place tags the margin notes and the level rule read; Qloo sends ~100 tags per place.
+NOTE_TAG_TYPES = (
+    "urn:tag:interests:qloo",
+    "urn:tag:ambience:qloo",
+    "urn:tag:time_of_day_fit:qloo",
+    "urn:tag:culinary_style:qloo",
+    "urn:tag:setting:qloo",
+    "urn:tag:decor:qloo",
+)
+
+
 def _genre_id(value: Any) -> str:
     return (value or {}).get("id", "") if isinstance(value, dict) else str(value or "")
 
@@ -59,11 +70,14 @@ def _trim_entity(e: dict[str, Any]) -> dict[str, Any]:
         q = e.get("query") or {}
         out["query"] = {"affinity": q.get("affinity"), "explainability": q.get("explainability")}
     if e.get("tags"):
+        tags = [t for t in e["tags"] if isinstance(t, dict)]
         out["tags"] = [
             {"name": t.get("name"), "type": t.get("type")}
-            for t in e["tags"][:40]
-            if isinstance(t, dict) and str(t.get("type", "")).startswith("urn:tag:genre:place")
-        ]
+            for t in tags
+            if str(t.get("type", "")).startswith("urn:tag:genre:place")
+        ][:40]
+        for kind in NOTE_TAG_TYPES:  # in Qloo's order, a few per kind
+            out["tags"] += [{"name": t.get("name"), "type": kind} for t in tags if t.get("type") == kind][:6]
     return out
 
 
@@ -206,8 +220,12 @@ class QlooClient:
         take: int = 50,
         explain: bool = False,
         category: str = "dining",
+        price_min: int | None = None,
     ) -> list[dict[str, Any]]:
-        """Places of one category in a city, ranked by Qloo. Without interests: the city's default ranking."""
+        """Places of one category in a city, ranked by Qloo. Without interests: the city's default ranking.
+
+        `price_min` (Qloo price level 1-4) keeps only places at or above that level.
+        """
         params: dict[str, Any] = {
             "filter.type": PLACE,
             "filter.location.query": city,
@@ -218,5 +236,7 @@ class QlooClient:
             params["signal.interests.entities"] = ",".join(interest_ids)
             if explain:
                 params["feature.explainability"] = "true"
+        if price_min and price_min > 1:
+            params["filter.price_level.min"] = price_min
         data = await self.get("/v2/insights", params, shape_entities)
         return data.get("results", {}).get("entities", [])

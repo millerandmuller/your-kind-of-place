@@ -68,14 +68,22 @@ export default function How() {
           Qloo&apos;s order.
         </li>
         <li>
+          <strong>Same level as the list (restaurants &amp; bars):</strong> the list&apos;s level is the median of Qloo&apos;s
+          price level (1 to 4) of its entries, when at least three have one. The guest&apos;s matches are then asked for at
+          that level or above (<code>filter.price_level.min</code>), and on a list at level 3 or above no pub, Irish pub or
+          sports bar is inserted. Theme venues (Qloo decor tag “Themed”) and a fixed list of chains are never inserted.
+        </li>
+        <li>
           <strong>Kept:</strong> everything else, unmarked. If the guest has fewer new matches than the budget, fewer things
           change. The list is never padded.
         </li>
         <li>
           <strong>Notes:</strong> for an insert, the favourite with the highest explainability score for that place (both
-          names when they are within 0.1), plus Qloo&apos;s neighbourhood and place type. For a strike: its rank by this
-          guest&apos;s taste affinity among the list&apos;s places (“Lowest taste affinity on this list for this guest”), or
-          “Not among this guest&apos;s top 50 taste matches” when Qloo gave it no score.
+          names when they are within 0.1), then up to three of the place&apos;s own Qloo tags (its first interest tag, its
+          first ambience tag that isn&apos;t a generic one such as “casual”, and “late night” when Qloo lists it) and the
+          neighbourhood. For a strike: its rank by this guest&apos;s taste affinity among the list&apos;s places (“Lowest taste
+          affinity on this list for this guest”), or “Not among this guest&apos;s top 50 taste matches” when Qloo gave it no
+          score. The small bar under each note is Qloo&apos;s taste affinity of this guest for that place (0 to 1).
         </li>
       </ul>
       <p>Same guest, same city, same budget: same list.</p>
@@ -145,6 +153,13 @@ export default function How() {
           <tr>
             <th>Restaurants &amp; bars</th>
             <td>11 of 12 (the first test, above) — offered, and the demo path</td>
+          </tr>
+          <tr>
+            <th>Restaurants &amp; bars at level 3 or above</th>
+            <td>
+              <strong>10 of 12</strong> — the same test with the level rule above (price level 3+, no pubs). Passed, one case
+              fewer than without the rule: on an upscale list two opposite guests share more places.
+            </td>
           </tr>
           <tr>
             <th>Live music &amp; nightlife</th>

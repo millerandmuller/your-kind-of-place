@@ -16,6 +16,7 @@ import {
   finalList,
   guestName,
   LABEL,
+  mapsUrl,
   shared,
   type DemoPair,
   type Issue,
@@ -36,6 +37,29 @@ function meta(p: Place): string {
   const base = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
   if (p.typed) return `${base} · listed as “${p.typed}”`;
   return base;
+}
+
+function MapLink({ p, city }: { p: Place; city?: string }) {
+  if (p.in_qloo === false || p.in_house) return null;
+  return (
+    <a className="maplink noprint" href={mapsUrl(p, city)} target="_blank" rel="noreferrer" aria-label={`${p.name} on Google Maps`} title="Open in Google Maps">
+      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+        <path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5c0 3.4 4.5 8.5 4.5 8.5s4.5-5.1 4.5-8.5A4.5 4.5 0 0 0 8 1.5Zm0 6.2a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4Z" fill="currentColor" />
+      </svg>
+    </a>
+  );
+}
+
+function Affinity({ value }: { value?: number }) {
+  if (value === undefined || value === null) return null;
+  return (
+    <span className="aff" title="Qloo taste affinity of this guest for the place (0 to 1)">
+      <span className="bar" aria-hidden="true">
+        <span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` }} />
+      </span>
+      <span className="val">affinity {value.toFixed(2)}</span>
+    </span>
+  );
 }
 
 function pairLabel(p: DemoPair): string {
@@ -289,6 +313,7 @@ export default function ListEditor() {
                   <span className="num">{i + 1}</span>
                   <div className="place">
                     <div className="name">{p.name}</div>
+                    <MapLink p={p} city={current.city} />
                     <div className="meta">{meta(p)}</div>
                   </div>
                   <span />
@@ -330,7 +355,7 @@ export default function ListEditor() {
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <small className="label" style={{ margin: 0 }}>Accept / reject stays on this screen only.</small>
                   <button className="btn" type="button" onClick={() => setSendOpen((s) => !s)}>
-                    Send to guest
+                    Message for the guest
                   </button>
                 </span>
               )}
@@ -342,7 +367,8 @@ export default function ListEditor() {
       {sendOpen && current && tab !== "default" && <SendOut r={current} rejected={rej} />}
 
       <p className="label noprint" style={{ marginTop: 18 }} hidden={tab === "arrivals"}>
-        {LABEL} Notes name the guest&apos;s favourite that Qloo&apos;s explainability says drove the place.{" "}
+        {LABEL} Notes name the guest&apos;s favourite that Qloo&apos;s explainability says drove the place, then the
+        place&apos;s own Qloo tags; the bar is the guest&apos;s Qloo taste affinity for it.{" "}
         <Link href="/how">How this works</Link>
       </p>
     </main>
@@ -378,6 +404,7 @@ function SideBySide({
               <span className="num">{i + 1}</span>
               <div className="place">
                 <div className="name">{p.name}</div>
+                <MapLink p={p} city={r.city} />
                 <div className="meta">{other.has(p.id) ? "on both lists" : meta(p)}</div>
               </div>
             </li>
@@ -444,6 +471,7 @@ function EditedList({
             <span className="num">{l.status === "insert" ? "+" : numbers[i]}</span>
             <div className="place">
               <div className="name">{l.place.name}</div>
+              <MapLink p={l.place} city={r.city} />
               <div className="meta">{meta(l.place)}</div>
             </div>
             {l.status === "keep" ? (
@@ -453,6 +481,7 @@ function EditedList({
                 <button type="button" className="why" aria-expanded={open === key} onClick={() => setOpen(open === key ? null : key)}>
                   {l.note}
                 </button>
+                <Affinity value={l.affinity} />
                 {l.status === "strike" && (
                   <div className="decide">
                     <button type="button" aria-pressed={!isRejected} onClick={() => toggle(strikeId, false)}>
@@ -521,38 +550,80 @@ function Detail({ line, r }: { line: Line; r: EditResult }) {
   );
 }
 
-function sendText(r: EditResult, rejected: Set<string>): string {
-  const notes = new Map<string, string>();
-  for (const l of r.lines) if (l.status === "insert" && !rejected.has(l.replaces ?? "")) notes.set(l.place.id, l.note);
+type Channel = "whatsapp" | "email";
+
+function stayDate(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function guestMessage(
+  r: EditResult,
+  rejected: Set<string>,
+  f: { guest: string; hotel: string; date: string },
+  channel: Channel,
+): string {
+  const bold = (t: string) => (channel === "whatsapp" ? `*${t}*` : t);
+  const what = r.category === "nightlife" ? "places for live music and a night out" : "restaurants and bars";
   const rows = finalList(r, rejected).map((p, i) => {
-    const note = notes.get(p.id);
-    const where = [p.kind, p.neighborhood].filter(Boolean).join(" · ");
-    return `${i + 1}. ${p.name}${where ? `  (${where})` : ""}${note ? `\n   ${note}` : ""}`;
+    const about = [p.neighborhood, ...(p.tags ?? []).slice(0, 2)].filter(Boolean).join(", ");
+    const link = p.in_qloo === false || p.in_house ? "" : `\n   ${mapsUrl(p, r.city)}`;
+    return `${i + 1}. ${bold(p.name)}${about ? ` (${about})` : ""}${link}`;
   });
-  return `Picked for you: ${categoryLabel(r.category).toLowerCase()} in ${r.city}\n\n${rows.join("\n")}\n\nPicks marked with a note were chosen for your taste. ${LABEL}`;
+  const when = stayDate(f.date);
+  const hotel = f.hotel.trim() || "our hotel";
+  const body = [
+    `Dear ${f.guest.trim() || "guest"},`,
+    "",
+    `Welcome to ${hotel}. For your stay in ${r.city}${when ? ` from ${when}` : ""} we have picked a few ${what} we think you will enjoy:`,
+    "",
+    ...rows,
+    "",
+    "Just let us know if you would like us to book or arrange anything.",
+    "",
+    "Kind regards,",
+    `The concierge team, ${hotel}`,
+  ].join("\n");
+  return channel === "email" ? `Subject: Your ${r.city} picks from ${hotel}\n\n${body}` : body;
 }
 
 function SendOut({ r, rejected }: { r: EditResult; rejected: Set<string> }) {
-  const text = sendText(r, rejected);
-  const [copied, setCopied] = useState(false);
+  const [f, setF] = useState({ guest: "", hotel: "", date: new Date().toISOString().slice(0, 10) });
+  const [copied, setCopied] = useState<Channel | null>(null);
+  const text = guestMessage(r, rejected, f, "email").replace(/^Subject: .*\n\n/, "");
+  const copy = (c: Channel) => navigator.clipboard?.writeText(guestMessage(r, rejected, f, c)).then(() => setCopied(c));
   return (
-    <section className="sheet sendout" aria-label="Version for the guest">
+    <section className="sheet sendout" aria-label="Message for the guest">
       <div className="sheet-head noprint">
-        <h2>Send to guest</h2>
-        <span style={{ display: "flex", gap: 8 }}>
-          <button
-            className="btn ghost"
-            type="button"
-            onClick={() => navigator.clipboard?.writeText(text).then(() => setCopied(true))}
-          >
-            {copied ? "Copied" : "Copy"}
+        <h2>Message for the guest</h2>
+        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn ghost" type="button" onClick={() => copy("whatsapp")}>
+            {copied === "whatsapp" ? "Copied" : "Copy for WhatsApp"}
+          </button>
+          <button className="btn ghost" type="button" onClick={() => copy("email")}>
+            {copied === "email" ? "Copied" : "Copy for email"}
           </button>
           <button className="btn" type="button" onClick={() => window.print()}>
             Print
           </button>
         </span>
       </div>
+      <div className="fields noprint">
+        <label className="label">
+          Guest
+          <input value={f.guest} placeholder="Ms Patel" maxLength={60} onChange={(e) => { setCopied(null); setF({ ...f, guest: e.target.value }); }} />
+        </label>
+        <label className="label">
+          Hotel
+          <input value={f.hotel} placeholder="The Hotel" maxLength={60} onChange={(e) => { setCopied(null); setF({ ...f, hotel: e.target.value }); }} />
+        </label>
+        <label className="label">
+          Arrival
+          <input type="date" value={f.date} onChange={(e) => { setCopied(null); setF({ ...f, date: e.target.value }); }} />
+        </label>
+      </div>
       <pre>{text}</pre>
+      <p className="label noprint">Nothing is sent from here: copy the text into WhatsApp or your email, or print it.</p>
     </section>
   );
 }
@@ -580,7 +651,7 @@ function OwnGuest({
   const [busy, setBusy] = useState<"form" | "agent" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[] } | null>(null);
+  const [agent, setAgent] = useState<{ said?: string; trace?: TraceStep[]; other?: string[] } | null>(null);
 
   const hotelLines = useCallback(
     () =>
@@ -628,7 +699,7 @@ function OwnGuest({
     setAgent(null);
     try {
       const r = await api.agent(text, city, budget, hotelLines());
-      setAgent({ said: r.agent_said, trace: r.trace });
+      setAgent({ said: r.agent_said, trace: r.trace, other: (r as EditResult).not_considered });
       if (r.city && CITIES.includes(r.city)) setCity(r.city);
       if (r.status === "ok") {
         const ok = r as EditResult;
@@ -779,6 +850,9 @@ function OwnGuest({
       )}
       {err && <p className="err">{err}</p>}
       {agent?.said && <p className="agent-said">Agent: {agent.said}</p>}
+      {agent?.other && agent.other.length > 0 && (
+        <p className="other">Not considered by the edit: {agent.other.join(", ")}</p>
+      )}
       {agent?.trace && agent.trace.length > 0 && (
         <details className="trace">
           <summary>What the agent did ({agent.trace.length} tool calls)</summary>

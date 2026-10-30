@@ -196,3 +196,14 @@ details.trace code { font-size: 0.78rem; }
   .sendout pre { border: 0; padding: 0; font-size: 12pt; }
   .wrap { padding: 0; }
 }
+
+.maplink { color: var(--muted); display: inline-flex; align-self: center; padding: 2px; border-radius: 4px; }
+.maplink:hover, .maplink:focus-visible { color: var(--ink); }
+.aff { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.72rem; color: var(--muted); }
+.aff .bar { width: 64px; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; display: inline-block; }
+.aff .bar > span { display: block; height: 100%; background: currentColor; }
+.row.strike .aff { color: var(--red); }
+.row.insert .aff { color: var(--green); }
+.sendout .fields { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+.sendout .fields label { display: grid; gap: 4px; margin: 0; }
+.other { margin: 6px 0; font-size: 0.85rem; border-left: 3px solid var(--ink); padding-left: 10px; }

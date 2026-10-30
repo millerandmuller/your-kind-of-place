@@ -11,7 +11,14 @@ export type Place = {
   typed?: string | null;
   in_qloo?: boolean;
   in_house?: boolean;
+  tags?: string[];
 };
+
+/** Google Maps search for a place, no API key: name plus address (or city). */
+export function mapsUrl(p: Place, city?: string): string {
+  const q = [p.name, p.address || city].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
 
 export type Driver = { id: string; name: string; score: number };
 
@@ -21,6 +28,7 @@ export type Line = {
   note: string;
   why?: Driver[];
   replaces?: string;
+  affinity?: number;
 };
 
 export type Interest = { id: string; name: string; kind: string };
@@ -46,11 +54,13 @@ export type EditResult = {
   changed: number;
   length: number;
   possible: number;
+  level?: number | null;
   match_count: number;
   cached: boolean;
   cache_age_seconds: number;
   agent_said?: string;
   trace?: TraceStep[];
+  not_considered?: string[];
 };
 
 export type NeedsInput = {
@@ -79,7 +89,7 @@ export type FoundFavourite = {
 };
 export type ArrivalRead = {
   status: "ok";
-  guests: { label: string; text: string; favourites: FoundFavourite[] }[];
+  guests: { label: string; text: string; favourites: FoundFavourite[]; not_considered?: string[] }[];
   trace: TraceStep[];
 };
 export type MorningReport = {
@@ -87,7 +97,11 @@ export type MorningReport = {
   city: string;
   category?: Category;
   budget: number;
-  guests: { label: string; result: EditResult | NeedsInput | { status: "skipped"; message: string } }[];
+  guests: {
+    label: string;
+    not_considered?: string[];
+    result: EditResult | NeedsInput | { status: "skipped"; message: string };
+  }[];
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -121,7 +135,7 @@ export const api = {
   arrivalsReport: (
     city: string,
     budget: number,
-    guests: { label: string; interests: InterestIn[] }[],
+    guests: { label: string; interests: InterestIn[]; not_considered?: string[] }[],
     hotelList?: string[],
     category: Category = "dining",
   ) =>

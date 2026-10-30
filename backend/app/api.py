@@ -162,6 +162,12 @@ class ReadNotesBody(BaseModel):
 class ArrivalGuest(BaseModel):
     label: str = Field(default="", max_length=60)
     interests: list[InterestBody] = Field(default_factory=list, max_length=3)
+    not_considered: list[str] = Field(default_factory=list, max_length=6)
+
+    @field_validator("not_considered")
+    @classmethod
+    def _other(cls, v: list[str]) -> list[str]:
+        return [" ".join(x.split())[:80] for x in v if x.strip()]
 
 
 class ReportBody(BaseModel):
